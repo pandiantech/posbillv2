@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Status Settings — Pandian Tech Service</title>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f4f5fa;--card:#fff;--muted:#888;--text:#111}
+*{box-sizing:border-box}
+body{font-family:'Quicksand',sans-serif;background:var(--bg);color:var(--text);margin:0}
+.wrap{max-width:760px;margin:20px auto;padding:18px}
+.card{background:var(--card);padding:16px;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,0.05)}
+.status-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.status-row input{flex:1;padding:10px;border-radius:8px;border:1px solid #ccc;font-family:inherit;font-size:14px}
+.status-row .swatch{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px}
+.status-row button{background:#ef4444;color:#fff;border:0;border-radius:8px;padding:8px 10px;font-size:13px;cursor:pointer}
+.add-btn{background:#111827;color:#fff;padding:10px 14px;border:0;border-radius:8px;cursor:pointer;margin-top:10px;font-weight:600}
+.save-msg{color:green;font-size:13px;margin-top:6px;opacity:0;transition:opacity .25s}
+.note{font-size:13px;color:var(--muted);margin-top:8px}
+@media(max-width:600px){.wrap{padding:12px}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <h2>Service Status Settings</h2>
+  <p class="note">Edit the job status labels. IDs are fixed internally (labels can be changed without breaking jobs). Known statuses receive automatic colors (Option A).</p>
+
+  <div id="statusContainer" class="card"></div>
+
+  <button id="addStatus" class="add-btn">+ Add New Status</button>
+  <div id="saveMsg" class="save-msg">Saved!</div>
+  <div class="note">Auto-colors: Received (gray), Processing (blue), Spare Changed (orange), Ready (green), Delivered (black). New statuses use neutral gray.</div>
+</div>
+
+<script>
+(() => {
+  const STATUS_KEY = 'serviceStatusSettings';
+  const $ = id => document.getElementById(id);
+
+  const defaultStatuses = [
+    { id: 'received', label: 'Received', color: '#9ca3af' },
+    { id: 'processing', label: 'Processing', color: '#2563eb' },
+    { id: 'spare', label: 'Spare Changed', color: '#f97316' },
+    { id: 'ready', label: 'Ready', color: '#10b981' },
+    { id: 'delivered', label: 'Delivered', color: '#111827' }
+  ];
+
+  function load() {
+    try { return JSON.parse(localStorage.getItem(STATUS_KEY) || '[]'); }
+    catch (e) { return []; }
+  }
+  function save(v) {
+    localStorage.setItem(STATUS_KEY, JSON.stringify(v));
+    // feedback
+    const m = $('saveMsg'); m.style.opacity = '1';
+    setTimeout(() => m.style.opacity = '0', 700);
+    // dispatch custom event in same tab
+    window.dispatchEvent(new Event('statusesUpdated'));
+  }
+
+  let statuses = load();
+  if (!Array.isArray(statuses) || statuses.length === 0) {
+    statuses = defaultStatuses.slice();
+    save(statuses);
+  }
+
+  // utility to create stable id for built-in labels (we keep built-in ids unchanged)
+  function isBuiltInId(id) {
+    return defaultStatuses.some(d => d.id === id);
+  }
+
+  // render UI
+  function render() {
+    const cont = $('statusContainer');
+    cont.innerHTML = '';
+    statuses.forEach((s, i) => {
+      const div = document.createElement('div');
+      div.className = 'status-row';
+
+      // color swatch - use stored color or fallback to default mapping
+      const color = s.color || (defaultStatuses.find(d => d.id === s.id)?.color) || '#6b7280';
+      const firstChar = (s.label || '').charAt(0).toUpperCase() || '?';
+
+      div.innerHTML = `
+        <input value="${escapeHtml(s.label)}" data-index="${i}" aria-label="Status label ${i+1}" />
+        <div class="swatch" style="background:${color}">${firstChar}</div>
+        <button data-index="${i}" title="Delete">🗑</button>
+      `;
+      cont.appendChild(div);
+    });
+
+    // attach handlers (debounced)
+    cont.querySelectorAll('input').forEach(inp => {
+      let timer = null;
+      const idx = Number(inp.dataset.index);
+
+      // input: debounce save (400ms)
+      inp.addEventListener('input', () => {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          const value = (inp.value || '').trim() || 'Unnamed';
+          statuses[idx].label = value;
+          // do NOT change the ID for existing statuses — ID remains fixed
+          save(statuses);
+          render(); // refresh swatch (shows new first letter)
+        }, 420);
+      });
+
+      // blur: save immediately (if user leaves)
+      inp.addEventListener('blur', () => {
+        clearTimeout(timer);
+        const value = (inp.value || '').trim() || 'Unnamed';
+        statuses[idx].label = value;
+        save(statuses);
+        render();
+      });
+    });
+
+    // delete buttons
+    cont.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = Number(btn.dataset.index);
+        const removed = statuses.splice(idx, 1);
+        save(statuses);
+        render();
+      });
+    });
+  }
+
+  // escape simple HTML for safety in value attribute
+  function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]);
+  }
+
+  render();
+
+  // add new status: create stable unique id and default label
+  $('addStatus').addEventListener('click', () => {
+    // generate unique id (s_TIMESTAMP) so it won't collide with built-ins
+    const id = 's_' + Date.now();
+    const label = 'New Status';
+    // default color omitted (monitor will use neutral gray)
+    statuses.push({ id, label });
+    save(statuses);
+    render();
+    // bring into view
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+  });
+
+  // expose for debugging
+  window._getServiceStatuses = () => statuses;
+
+})();
+</script>
+
+</body>
+</html>

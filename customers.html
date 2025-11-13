@@ -1,0 +1,885 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Customers — Pandian Tech Service</title>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f8fafc;
+    --card:#fff;
+    --muted:#6b7280;
+    --text:#111827;
+    --accent:#374151;
+    --header-h:64px;
+    --maxw:1100px;
+  }
+  *{box-sizing:border-box}
+  body{font-family:'Quicksand',sans-serif;margin:0;background:var(--bg);color:var(--text)}
+  /* header */
+  header.pandian-header {
+    position: fixed; top:0; left:0; right:0;
+    height: var(--header-h);
+    background: #111827; color: #fff;
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 8px 14px; z-index:10000; box-shadow:0 2px 6px rgba(0,0,0,0.25);
+  }
+  .ph-left { display:flex; align-items:center; gap:12px; }
+  .brand { font-weight:700; font-size:16px; background:#fff; color:#111827; width:40px; height:40px; border-radius:8px; display:flex; align-items:center; justify-content:center;}
+  .nav-links { display:flex; gap:12px; align-items:center; overflow:auto; -webkit-overflow-scrolling:touch; }
+  .nav-links a { color:#fff; text-decoration:none; font-weight:600; font-size:14px; padding:6px 10px; border-radius:6px; white-space:nowrap; }
+  .nav-links a.active { background:#2563eb; }
+  .hamburger { display:none; background:transparent; border:0; padding:6px; cursor:pointer; }
+  .hamburger svg{display:block}
+  .ph-right { display:flex; align-items:center; gap:8px; }
+  .brand-text { font-size:14px; opacity:0.95; color:#fff; margin-right:8px }
+  .mobile-nav-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.6); display:none; align-items:flex-start; justify-content:flex-end; z-index:10001; }
+  .mobile-nav-overlay.active { display:flex; }
+  .mobile-nav { width:260px; background:#fff; height:100%; padding:14px; display:flex; flex-direction:column; gap:12px; box-shadow:-6px 0 20px rgba(0,0,0,0.2); }
+  .mobile-nav a { color:#111; text-decoration:none; padding:10px 8px; border-radius:6px; font-weight:600; display:block; }
+  .mobile-close { align-self:flex-end; background:transparent; border:0; font-size:18px; cursor:pointer; }
+
+  @media (max-width:900px) { .nav-links{display:none} .hamburger{display:inline-flex} .brand-text{font-size:13px} }
+  @media (max-width:480px) { :root{--header-h:72px} header.pandian-header{padding:8px 10px} }
+
+  /* page container */
+  .wrap{max-width:var(--maxw);margin:calc(var(--header-h) + 18px) auto 28px;padding:16px}
+  h1{margin:0;font-size:20px}
+  p.lead{margin:6px 0 12px;color:var(--muted);font-size:13px}
+
+  .grid{display:grid;grid-template-columns:1fr 420px;gap:16px}
+  @media(max-width:980px){ .grid{grid-template-columns:1fr} }
+
+  .card{background:var(--card);border-radius:10px;padding:14px;box-shadow:0 6px 18px rgba(16,24,40,0.04);margin-bottom:14px}
+
+  .search-row{display:flex;gap:8px;margin-bottom:12px;align-items:center}
+  input[type=search], input[type=text], textarea, select { width:100%; padding:10px 12px; border-radius:8px; border:1px solid #e6e6e6; font-size:14px; }
+  textarea{min-height:80px; resize:vertical }
+
+  table{width:100%;border-collapse:collapse}
+  th, td { padding:10px; border-bottom:1px solid #f1f1f1; text-align:left; vertical-align:top; font-size:14px }
+  th { background:#fafafa; color:var(--muted); font-weight:700; font-size:13px }
+  .small{font-size:13px;color:var(--muted)}
+
+  .btn { background:#111827;color:#fff;border:0;padding:8px 10px;border-radius:8px;cursor:pointer;font-weight:600 }
+  .btn.ghost { background:transparent;color:var(--accent);border:1px solid #e6e6e6 }
+  .btn.link { background:transparent;color:#2563eb;border:0;padding:4px 6px;font-weight:700 }
+
+  .two-col{display:grid;grid-template-columns:1fr 320px;gap:16px}
+  @media(max-width:980px){ .two-col{grid-template-columns:1fr} }
+
+  .mini { font-size:13px;color:var(--muted) }
+
+  /* history table small tweaks */
+  .history-table td { font-size:13px }
+  .history-actions button { margin-right:6px }
+
+  /* customer detail card */
+  .detail-row{display:flex;gap:8px}
+  .detail-row input{flex:1}
+
+  /* badges */
+  .badge{display:inline-block;padding:4px 8px;border-radius:6px;background:#f3f4f6;color:#111;font-size:12px}
+
+  /* responsive tweaks */
+  @media(max-width:600px){
+    .search-row{flex-direction:column;align-items:stretch}
+  }
+  /* =========================================================
+   📱 Extra Mobile Responsive Tweaks
+   ========================================================= */
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  .card {
+    padding: 12px;
+  }
+  .table-container {
+    max-height: none;
+  }
+  table {
+    font-size: 13px;
+  }
+  th, td {
+    padding: 8px;
+  }
+  /* tighter buttons */
+  .btn, .btn.ghost {
+    padding: 7px 9px;
+    font-size: 13px;
+  }
+}
+
+/* collapse long tables into blocks on phones */
+@media (max-width: 640px) {
+  table thead {
+    display: none;
+  }
+  table tr {
+    display: block;
+    background: #fff;
+    margin-bottom: 10px;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    overflow: hidden;
+  }
+  table td {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border: 0;
+    border-bottom: 1px solid #f1f1f1;
+  }
+  table td:last-child {
+    border-bottom: 0;
+  }
+  table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #555;
+    margin-right: 8px;
+  }
+  .history-actions {
+    justify-content: flex-end;
+  }
+}
+
+/* shrink header text and spacing on very small phones */
+@media (max-width: 480px) {
+  header.pandian-header {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 6px 10px;
+  }
+  .brand {
+    width: 36px;
+    height: 36px;
+    font-size: 13px;
+  }
+  .brand-text {
+    font-size: 12px;
+  }
+  .wrap {
+    padding: 10px;
+    margin-top: 80px;
+  }
+  h1 {
+    font-size: 18px;
+  }
+  .search-row {
+    flex-direction: column;
+    gap: 6px;
+  }
+  .btn {
+    width: 100%;
+  }
+  #newCustBtn, #exportBtn, #importBtn {
+    width: 100%;
+  }
+}
+
+</style>
+</head>
+<body>
+
+  
+  <div class="wrap">
+
+    <header style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+      <h1>Customer Management</h1>
+      <div style="flex:1"></div>
+      <div class="mini">Synced with Billing & Service</div>
+    </header>
+
+    <div class="card">
+      <div class="search-row">
+        <input id="searchInput" type="search" placeholder="Search customers by name or mobile...">
+        <button id="newCustBtn" class="btn ghost">+ New Customer</button>
+        <div style="flex:1"></div>
+        <button id="exportBtn" class="btn ghost">Export customers</button>
+        <button id="importBtn" class="btn ghost">Import</button>
+      </div>
+
+      <div class="grid">
+        <!-- Left: Customer list -->
+        <div style="min-height:220px">
+          <div style="margin-bottom:8px;"><strong>Customers</strong> <span id="custCount" class="mini"></span></div>
+          <div class="table-container" style="overflow:auto;max-height:420px">
+            <table>
+              <thead>
+                <tr><th>Name</th><th>Mobile</th><th>Last Device</th><th>Actions</th></tr>
+              </thead>
+              <tbody id="custTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Right: Selected customer details -->
+        <div>
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+            <div style="width:64px;height:64px;border-radius:10px;background:#fff;border:1px solid #eee;display:flex;align-items:center;justify-content:center;font-weight:700" id="logoBox">PTS</div>
+            <div style="flex:1">
+              <div id="selectedName" style="font-weight:700;font-size:16px">Select a customer</div>
+              <div class="mini" id="selectedMeta">Billing & service history</div>
+            </div>
+          </div>
+
+          <div class="card" style="padding:10px;margin-bottom:10px">
+            <label class="small">Name</label>
+            <input id="selName" type="text" placeholder="Customer name">
+            <label class="small" style="margin-top:8px">Mobile</label>
+            <input id="selMobile" type="text" placeholder="10-digit mobile">
+            <label class="small" style="margin-top:8px">Address</label>
+            <textarea id="selAddress" placeholder="Address"></textarea>
+            <div style="display:flex;gap:8px;margin-top:10px">
+              <button id="saveCustomerBtn" class="btn">Save</button>
+              <button id="deleteCustomerBtn" class="btn ghost">Delete</button>
+              <div style="flex:1"></div>
+              <button id="printCustomerBtn" class="btn ghost">Print Profile</button>
+            </div>
+            <div class="mini" style="margin-top:8px">Edits save to localStorage and sync with Billing & Service pages.</div>
+          </div>
+
+          <div class="card" id="customerCounts" style="padding:10px">
+            <div style="display:flex;gap:8px;align-items:center">
+              <div><strong>Totals</strong></div>
+              <div style="flex:1"></div>
+              <div class="mini">Bills: <span id="totalBills">0</span></div>
+              <div style="width:12px"></div>
+              <div class="mini">Jobs: <span id="totalJobs">0</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Billing History -->
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div><strong>Billing History</strong> <span class="mini" id="histCustName"> (select customer)</span></div>
+        <div>
+          <button id="printAllBillsBtn" class="btn ghost">Print All Bills</button>
+          <button id="exportBillsBtn" class="btn ghost">Export Bills</button>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;overflow:auto" class="history-table">
+        <table>
+          <thead>
+            <tr><th>Bill No</th><th>Date</th><th>Items</th><th>Total</th><th>Paid</th><th>Balance</th><th>Actions</th></tr>
+          </thead>
+          <tbody id="billsBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Service History -->
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div><strong>Service History</strong> <span class="mini" id="histCustName2"> (select customer)</span></div>
+        <div>
+          <button id="printAllJobsBtn" class="btn ghost">Print All Jobs</button>
+          <button id="exportJobsBtn" class="btn ghost">Export Jobs</button>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;overflow:auto" class="history-table">
+        <table>
+          <thead>
+            <tr><th>Job No</th><th>Date</th><th>Device</th><th>Complaint / Diagnosis</th><th>Charge</th><th>Paid</th><th>Actions</th></tr>
+          </thead>
+          <tbody id="jobsBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+<script>
+(function(){
+  // helpers
+  const $ = id => document.getElementById(id);
+  const CUSTOMERS_KEY='customers', BILLS_KEY='bills', JOBS_KEY='jobs', SETTINGS_KEY='companyDetails';
+
+  function load(k, d){ try { return JSON.parse(localStorage.getItem(k) || JSON.stringify(d)); } catch(e){ return d; } }
+  function save(k, v){ localStorage.setItem(k, JSON.stringify(v)); }
+
+  // state
+  let customers = load(CUSTOMERS_KEY, []);
+  let bills = load(BILLS_KEY, []);
+  let jobs = load(JOBS_KEY, []);
+  let settings = load(SETTINGS_KEY, {companyName:'Pandian Tech Service'});
+
+  // UI refs
+  const custTableBody = $('custTableBody');
+  const custCount = $('custCount');
+  const selName = $('selName'), selMobile = $('selMobile'), selAddress = $('selAddress');
+  const selectedName = $('selectedName'), selectedMeta = $('selectedMeta');
+  const logoBox = $('logoBox');
+  const histCustName = $('histCustName'), histCustName2 = $('histCustName2');
+  const billsBody = $('billsBody'), jobsBody = $('jobsBody');
+  const totalBills = $('totalBills'), totalJobs = $('totalJobs');
+
+  let selectedCustomerId = null;
+
+  // utility
+  function formatAmt(n){ return '₹' + (Number(n)||0).toFixed(2); }
+  function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]); }
+
+  // re-load settings on focus
+  window.addEventListener('focus', ()=> { settings = load(SETTINGS_KEY, {}); renderLogo(); renderCounts(); });
+
+  // render logo & company
+  function renderLogo(){
+    const logo = localStorage.getItem('companyLogo') || (settings && settings.logo) || '';
+    if(logo){
+      logoBox.innerHTML = '<img src="'+logo+'" alt="logo" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px">';
+    } else {
+      logoBox.innerText = (settings && settings.companyName) ? (settings.companyName.split(' ').map(w=>w[0]).slice(0,2).join('')) : 'PTS';
+      logoBox.style.fontWeight = '700';
+    }
+    $('pageTitle').innerText = 'Customers — ' + (settings.companyName || 'Pandian Tech Service');
+  }
+
+  // initial render
+  renderLogo();
+
+  // render customer list
+  function renderCustomers(filter=''){
+    // refresh data from storage (keeps sync)
+    customers = load(CUSTOMERS_KEY, []);
+    bills = load(BILLS_KEY, []);
+    jobs = load(JOBS_KEY, []);
+
+    const q = (filter||'').toString().trim().toLowerCase();
+    custTableBody.innerHTML = '';
+    const rows = customers.slice().sort((a,b)=> (a.name||'').localeCompare(b.name||''));
+    let shown = 0;
+    rows.forEach(c => {
+      if(q){
+        if(!( (c.name||'').toLowerCase().includes(q) || (c.mobile||'').toLowerCase().includes(q) )) return;
+      }
+      const lastDevice = c.lastDevice ? ((c.lastDevice.type||'') + ' ' + (c.lastDevice.brand||'') + ' ' + (c.lastDevice.model||'')).trim() : '';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${escapeHtml(c.name||'')}</td>
+        <td>${escapeHtml(c.mobile||'')}</td>
+        <td>${escapeHtml(lastDevice)}</td>
+        <td style="white-space:nowrap">
+          <button class="btn link" data-act="view" data-id="${c.id}">View</button>
+          <button class="btn ghost" data-act="print" data-id="${c.id}">Print</button>
+        </td>`;
+      custTableBody.appendChild(tr);
+      shown++;
+    });
+    custCount.innerText = shown ? shown + ' shown' : '';
+    if(!shown) custTableBody.innerHTML = '<tr><td colspan="4"><em>No customers found.</em></td></tr>';
+  }
+
+  // render counts at right card
+  function renderCounts(){
+    bills = load(BILLS_KEY, []);
+    jobs = load(JOBS_KEY, []);
+    totalBills.innerText = bills.length || 0;
+    totalJobs.innerText = jobs.length || 0;
+  }
+
+  // select customer
+  function selectCustomer(id){
+    customers = load(CUSTOMERS_KEY, []);
+    const c = customers.find(x=>x.id === id);
+    if(!c) return;
+    selectedCustomerId = c.id;
+    selName.value = c.name || '';
+    selMobile.value = c.mobile || '';
+    selAddress.value = c.address || '';
+    selectedName.innerText = c.name || '(unnamed)';
+    selectedMeta.innerText = (c.mobile ? c.mobile : '') + (c.jobs ? ' • jobs: ' + (c.jobs.length||0) : '');
+    histCustName.innerText = ' — ' + (c.name || '');
+    histCustName2.innerText = ' — ' + (c.name || '');
+    // render histories
+    renderBillsForCustomer(c);
+    renderJobsForCustomer(c);
+    renderCounts();
+  }
+
+  // inline save for selected
+  function saveSelectedCustomer(){
+    if(!selectedCustomerId) {
+      // create new if name/mobile present
+      const name = (selName.value||'').trim();
+      const mobile = (selMobile.value||'').trim();
+      if(!name || !mobile) { alert('Name and mobile required to create customer'); return; }
+      const id = 'c_' + Date.now();
+      const newCust = { id, name, mobile, address: selAddress.value||'', jobs: [], lastDevice: {} };
+      customers.push(newCust);
+      save(CUSTOMERS_KEY, customers);
+      selectedCustomerId = id;
+      alert('Customer created');
+      renderCustomers($('searchInput').value||'');
+      selectCustomer(id);
+      return;
+    }
+    // update existing
+    customers = load(CUSTOMERS_KEY, []);
+    const c = customers.find(x=>x.id === selectedCustomerId);
+    if(!c) { alert('Selected customer missing'); return; }
+    c.name = (selName.value||'').trim();
+    c.mobile = (selMobile.value||'').trim();
+    c.address = selAddress.value||'';
+    save(CUSTOMERS_KEY, customers);
+    alert('Customer updated');
+    renderCustomers($('searchInput').value||'');
+    selectCustomer(c.id);
+  }
+
+  // delete customer
+  function deleteSelectedCustomer(){
+    if(!selectedCustomerId) return alert('No customer selected');
+    if(!confirm('Delete this customer? This will not delete bills/jobs but removes customer record.')) return;
+    customers = load(CUSTOMERS_KEY, []);
+    customers = customers.filter(c=>c.id !== selectedCustomerId);
+    save(CUSTOMERS_KEY, customers);
+    selectedCustomerId = null;
+    selName.value = selMobile.value = selAddress.value = '';
+    selectedName.innerText = 'Select a customer';
+    selectedMeta.innerText = 'Billing & service history';
+    histCustName.innerText = ' (select customer)';
+    histCustName2.innerText = ' (select customer)';
+    billsBody.innerHTML = ''; jobsBody.innerHTML = '';
+    renderCustomers($('searchInput').value||'');
+    renderCounts();
+  }
+
+  // render bills for a customer
+  function renderBillsForCustomer(c){
+    bills = load(BILLS_KEY, []);
+    const customerMobile = c.mobile || '';
+    const arr = bills.slice().filter(b => (b.customer && (b.customer.mobile === customerMobile || b.customer.name && b.customer.name.toLowerCase() === (c.name||'').toLowerCase())));
+    if(!arr.length){ billsBody.innerHTML = '<tr><td colspan="7"><em>No bills found for this customer.</em></td></tr>'; return; }
+    arr.sort((a,b)=> (b.billNo||0) - (a.billNo||0));
+    billsBody.innerHTML = '';
+    arr.forEach(b => {
+      const items = (b.items || []).map(it => (it.name + ' x' + it.qty)).slice(0,3).join(', ');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${escapeHtml(b.billNo)}</td>
+        <td>${escapeHtml(b.dateTime||'')}</td>
+        <td>${escapeHtml(items)}</td>
+        <td>${formatAmt(b.total)}</td>
+        <td>${formatAmt(b.paid)}</td>
+        <td>${formatAmt(b.balance)}</td>
+        <td class="history-actions">
+          <button class="btn ghost" data-act="view-bill" data-id="${b.id||b.billNo}">View</button>
+          <button class="btn" data-act="print-bill" data-id="${b.id||b.billNo}">Print</button>
+        </td>`;
+      billsBody.appendChild(tr);
+    });
+  }
+
+  // render jobs for a customer
+  function renderJobsForCustomer(c){
+    jobs = load(JOBS_KEY, []);
+    const customerMobile = c.mobile || '';
+    const arr = jobs.slice().filter(j => (j.customer && (j.customer.mobile === customerMobile || j.customer.name && j.customer.name.toLowerCase() === (c.name||'').toLowerCase())));
+    if(!arr.length){ jobsBody.innerHTML = '<tr><td colspan="7"><em>No service jobs found for this customer.</em></td></tr>'; return; }
+    arr.sort((a,b)=> (b.jobNo||0) - (a.jobNo||0));
+    jobsBody.innerHTML = '';
+    arr.forEach(j => {
+      const device = `${j.device?.type || ''} ${j.device?.brand || ''} ${j.device?.model || ''}`.trim();
+      const tdText = `${j.device?.complaint || ''} / ${j.device?.diagnosis || ''}`;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${escapeHtml(j.jobNo)}</td>
+        <td>${escapeHtml(j.dateTime || '')}</td>
+        <td>${escapeHtml(device)}</td>
+        <td>${escapeHtml(tdText)}</td>
+        <td>${formatAmt(j.charge)}</td>
+        <td>${formatAmt(j.paid)}</td>
+        <td class="history-actions">
+          <button class="btn ghost" data-act="view-job" data-id="${j.id}">View</button>
+          <button class="btn" data-act="print-job" data-id="${j.id}">Print</button>
+        </td>`;
+      jobsBody.appendChild(tr);
+    });
+  }
+
+  // print helpers (shares logic with your service print; prints bill or job)
+  function printHtmlViaIframe(html){
+    try {
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.left = '-9999px';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      document.body.appendChild(iframe);
+      const doc = iframe.contentDocument || iframe.contentWindow.document;
+      doc.open(); doc.write(html); doc.close();
+      let done=false;
+      const doPrint = () => {
+        if(done) return; done = true;
+        try { iframe.contentWindow.focus(); iframe.contentWindow.print(); } catch(e){ alert('Printing failed — use browser print.'); }
+        setTimeout(()=> { try{ document.body.removeChild(iframe); }catch(e){} }, 800);
+      };
+      const imgs = Array.from(doc.images || []);
+      if(imgs.length){
+        let loaded=0, errored=0;
+        imgs.forEach(img=>{
+          if(img.complete){ loaded++; return; }
+          img.addEventListener('load', ()=>{ loaded++; if(loaded+errored===imgs.length) doPrint(); });
+          img.addEventListener('error', ()=>{ errored++; if(loaded+errored===imgs.length) doPrint(); });
+        });
+        setTimeout(()=>{ if(!done) doPrint(); }, 1500);
+      } else {
+        setTimeout(doPrint, 400);
+      }
+      iframe.onload = function(){ setTimeout(doPrint, 150); };
+    } catch(e){
+      alert('Unable to print: ' + (e && e.message ? e.message : e));
+    }
+  }
+
+  function buildCompanyHeader(){
+    settings = load(SETTINGS_KEY, {});
+    const logo = localStorage.getItem('companyLogo') || settings.logo || '';
+    const name = settings.companyName || 'Pandian Tech Service';
+    const addr = settings.companyAddress || settings.address || '';
+    const phone = settings.companyPhone || '';
+    return { logo, name, addr, phone };
+  }
+
+  // Print a single bill
+  function printBillById(billIdOrNo){
+    bills = load(BILLS_KEY, []);
+    // bill may have id or billNo; match either
+    let bill = bills.find(b => (b.id && b.id === billIdOrNo) || (b.billNo && String(b.billNo) === String(billIdOrNo)));
+    if(!bill) { alert('Bill not found'); return; }
+    const s = buildCompanyHeader();
+    const itemsHtml = (bill.items||[]).map(it => `<div style="display:flex;justify-content:space-between;padding:4px 0"><div>${escapeHtml(it.name)} x${it.qty}</div><div>₹${(it.qty*it.rate).toFixed(2)}</div></div>`).join('');
+    // decide thermal vs A4 using settings.printType
+    const printType = (settings.printType || settings.printerType || 'A4').toString().toLowerCase();
+    if(printType.includes('thermal')){
+      const width = printType.includes('58') ? '58mm' : '80mm';
+      const html = `<!doctype html><html><head><meta charset="utf-8"><title>Bill ${escapeHtml(bill.billNo)}</title>
+        <style>body{font-family:Quicksand,Arial;width:${width};font-size:12px;color:#111;margin:0;padding:6px}.center{text-align:center}.line{border-top:1px dashed #bbb;margin:8px 0}</style>
+        </head><body>
+        ${ s.logo ? `<img src="${s.logo}" style="display:block;margin:0 auto 6px;max-width:90px;max-height:90px">` : '' }
+        <div class="center" style="font-weight:700;font-size:13px">${escapeHtml(s.name)}</div>
+        ${ s.addr ? `<div class="center" style="font-size:12px;color:#444">${escapeHtml(s.addr)}</div>` : '' }
+        ${ s.phone ? `<div class="center" style="font-size:12px;color:#444">📞 ${escapeHtml(s.phone)}</div>` : '' }
+        <div class="line"></div>
+        <div><b>Bill No:</b> ${escapeHtml(bill.billNo)} &nbsp; <b>Date:</b> ${escapeHtml(bill.dateTime || '')}</div>
+        <div><b>Customer:</b> ${escapeHtml(bill.customer?.name||'-')} (${escapeHtml(bill.customer?.mobile||'-')})</div>
+        <div class="line"></div>
+        ${itemsHtml}
+        <div class="line"></div>
+        <div style="display:flex;justify-content:space-between"><div>Subtotal</div><div>₹${(bill.subtotal||0).toFixed(2)}</div></div>
+        <div style="display:flex;justify-content:space-between"><div>Discount</div><div>₹${(bill.discount||0).toFixed(2)}</div></div>
+        <div style="display:flex;justify-content:space-between;font-weight:700"><div>Total</div><div>₹${(bill.total||0).toFixed(2)}</div></div>
+        <div style="display:flex;justify-content:space-between"><div>Paid</div><div>₹${(bill.paid||0).toFixed(2)}</div></div>
+        <div style="text-align:center;margin-top:8px;font-size:12px">Thank you!</div>
+        </body></html>`;
+      printHtmlViaIframe(html);
+    } else {
+      const html = `<!doctype html><html><head><meta charset="utf-8"><title>Bill ${escapeHtml(bill.billNo)}</title>
+        <style>body{font-family:Quicksand,Arial;width:720px;margin:0 auto;color:#111;font-size:13px}.center{text-align:center}.line{border-top:1px solid #eee;margin:8px 0}</style>
+        </head><body>
+        ${ s.logo ? `<img src="${s.logo}" style="display:block;margin:0 auto 6px;max-width:120px;max-height:120px">` : '' }
+        <h2 class="center" style="margin:0">${escapeHtml(s.name)}</h2>
+        ${ s.addr ? `<div class="center small" style="color:#444">${escapeHtml(s.addr)}</div>` : '' }
+        ${ s.phone ? `<div class="center small" style="color:#444">📞 ${escapeHtml(s.phone)}</div>` : '' }
+        <div class="line"></div>
+        <div style="display:flex;justify-content:space-between"><div><b>Bill No:</b> ${escapeHtml(bill.billNo)}</div><div><b>Date:</b> ${escapeHtml(bill.dateTime||'')}</div></div>
+        <div style="margin-top:8px"><b>Customer:</b> ${escapeHtml(bill.customer?.name||'-')} (${escapeHtml(bill.customer?.mobile||'-')})</div>
+        <div class="line"></div>
+        <div>${itemsHtml}</div>
+        <div class="line"></div>
+        <div style="display:flex;justify-content:space-between"><div>Subtotal</div><div>₹${(bill.subtotal||0).toFixed(2)}</div></div>
+        <div style="display:flex;justify-content:space-between"><div>Discount</div><div>₹${(bill.discount||0).toFixed(2)}</div></div>
+        <div style="display:flex;justify-content:space-between;font-weight:700"><div>Total</div><div>₹${(bill.total||0).toFixed(2)}</div></div>
+        <div style="display:flex;justify-content:space-between"><div>Paid</div><div>₹${(bill.paid||0).toFixed(2)}</div></div>
+        <div class="line"></div>
+        <div style="text-align:center;font-size:12px">Thank you! Visit Again.</div>
+        </body></html>`;
+      printHtmlViaIframe(html);
+    }
+  }
+
+  // Print single job
+  function printJobById(jobId){
+    jobs = load(JOBS_KEY, []);
+    const job = jobs.find(j => j.id === jobId);
+    if(!job) { alert('Job not found'); return; }
+    const s = buildCompanyHeader();
+    const deviceFull = `${job.device?.type || ''} ${job.device?.brand || ''} ${job.device?.model || ''}`.trim();
+    const complaint = job.device?.complaint || ''; const diagnosis = job.device?.diagnosis || '';
+    const warrantyText = (job.warranty ? (job.warranty + 'm') : 'No warranty');
+    const printType = (settings.printType || settings.printerType || 'A4').toString().toLowerCase();
+
+    if(printType.includes('thermal')){
+      const width = printType.includes('58') ? '58mm' : '80mm';
+      const html = `<!doctype html><html><head><meta charset="utf-8"><title>Job ${escapeHtml(job.jobNo)}</title>
+        <style>body{font-family:Quicksand,Arial;width:${width};font-size:12px;color:#111;margin:0;padding:6px}.center{text-align:center}.line{border-top:1px dashed #bbb;margin:8px 0}</style>
+        </head><body>
+        ${ s.logo ? `<img src="${s.logo}" style="display:block;margin:0 auto 6px;max-width:80px;max-height:80px">` : '' }
+        <div class="center" style="font-weight:700;font-size:13px">${escapeHtml(s.name)}</div>
+        ${ s.addr ? `<div class="center small" style="color:#444">${escapeHtml(s.addr)}</div>` : '' }
+        <div class="line"></div>
+        <div><b>Job No:</b> ${escapeHtml(job.jobNo)}</div>
+        <div><b>Date:</b> ${escapeHtml(job.dateTime || '')}</div>
+        <div><b>Customer:</b> ${escapeHtml(job.customer?.name || '-')} (${escapeHtml(job.customer?.mobile || '-')})</div>
+        <div class="line"></div>
+        <div><b>Device:</b> ${escapeHtml(deviceFull)}</div>
+        <div><b>Complaint:</b> ${escapeHtml(complaint)}</div>
+        <div><b>Diagnosis:</b> ${escapeHtml(diagnosis)}</div>
+        <div><b>Warranty:</b> ${escapeHtml(warrantyText)}</div>
+        <div class="line"></div>
+        <div style="display:flex;justify-content:space-between"><div><b>Service</b></div><div>₹${(job.charge||0).toFixed(2)}</div></div>
+        <div style="display:flex;justify-content:space-between"><div><b>Paid</b></div><div>₹${(job.paid||0).toFixed(2)}</div></div>
+        <div class="line"></div>
+        <div style="text-align:center;font-size:12px">Thank you!</div>
+        </body></html>`;
+      printHtmlViaIframe(html);
+    } else {
+      const html = `<!doctype html><html><head><meta charset="utf-8"><title>Job ${escapeHtml(job.jobNo)}</title>
+        <style>body{font-family:Quicksand,Arial;width:720px;margin:0 auto;color:#111;font-size:13px}.center{text-align:center}.line{border-top:1px solid #eee;margin:8px 0}</style>
+        </head><body>
+        ${ s.logo ? `<img src="${s.logo}" style="display:block;margin:0 auto 6px;max-width:120px;max-height:120px">` : '' }
+        <h2 class="center" style="margin:0">${escapeHtml(s.name)}</h2>
+        ${ s.addr ? `<div class="center small" style="color:#444">${escapeHtml(s.addr)}</div>` : '' }
+        <div class="line"></div>
+        <div style="display:flex;justify-content:space-between"><div><b>Job No:</b> ${escapeHtml(job.jobNo)}</div><div><b>Date:</b> ${escapeHtml(job.dateTime||'')}</div></div>
+        <div style="margin-top:8px"><b>Customer:</b> ${escapeHtml(job.customer?.name||'-')} (${escapeHtml(job.customer?.mobile||'-')})</div>
+        <div class="line"></div>
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <tr><td style="padding:6px;border-bottom:1px solid #eee"><b>Device</b></td><td style="padding:6px;border-bottom:1px solid #eee">${escapeHtml(deviceFull)}</td></tr>
+          <tr><td style="padding:6px;border-bottom:1px solid #eee"><b>Complaint</b></td><td style="padding:6px;border-bottom:1px solid #eee">${escapeHtml(complaint)}</td></tr>
+          <tr><td style="padding:6px;border-bottom:1px solid #eee"><b>Diagnosis</b></td><td style="padding:6px;border-bottom:1px solid #eee">${escapeHtml(diagnosis)}</td></tr>
+          <tr><td style="padding:6px"><b>Warranty</b></td><td style="padding:6px">${escapeHtml(warrantyText)}</td></tr>
+        </table>
+        <div style="margin-top:12px;float:right;max-width:260px">
+          <div style="display:flex;justify-content:space-between"><div><b>Service Charge</b></div><div>₹${(job.charge||0).toFixed(2)}</div></div>
+          <div style="display:flex;justify-content:space-between"><div><b>Paid</b></div><div>₹${(job.paid||0).toFixed(2)}</div></div>
+        </div>
+        <div style="clear:both"></div>
+        <div class="line"></div>
+        <div style="text-align:center;font-size:12px">Thank you for your business!</div>
+        </body></html>`;
+      printHtmlViaIframe(html);
+    }
+  }
+
+  // print all bills for selected customer
+  function printAllBillsForSelected(){
+    if(!selectedCustomerId) return alert('Select a customer first');
+    const c = customers.find(x=>x.id===selectedCustomerId);
+    if(!c) return;
+    const arr = load(BILLS_KEY, []).filter(b => b.customer && (b.customer.mobile === c.mobile || (b.customer.name && b.customer.name.toLowerCase() === (c.name||'').toLowerCase())));
+    if(!arr.length) return alert('No bills to print');
+    // build combined A4 page with multiple bills (simple concatenation)
+    let htmlParts = '';
+    arr.forEach(b => {
+      const itemsHtml = (b.items||[]).map(it => `<div style="display:flex;justify-content:space-between;padding:4px 0"><div>${escapeHtml(it.name)} x${it.qty}</div><div>₹${(it.qty*it.rate).toFixed(2)}</div></div>`).join('');
+      htmlParts += `<div style="page-break-after:always;padding:12px;border-bottom:1px dashed #ddd">
+        <h3 style="margin:0">${escapeHtml(b.billNo)} — ${escapeHtml(b.dateTime||'')}</h3>
+        <div>${escapeHtml(b.customer?.name||'')} (${escapeHtml(b.customer?.mobile||'')})</div>
+        <div style="margin-top:8px">${itemsHtml}</div>
+        <div style="margin-top:8px;display:flex;justify-content:space-between"><div>Total</div><div>₹${(b.total||0).toFixed(2)}</div></div>
+      </div>`;
+    });
+    const s = buildCompanyHeader();
+    const full = `<!doctype html><html><head><meta charset="utf-8"><title>Bills - ${escapeHtml(c.name)}</title>
+      <style>body{font-family:Quicksand,Arial;margin:12px;color:#111}.center{text-align:center}</style></head><body>
+      ${ s.logo ? `<img src="${s.logo}" style="display:block;margin:0 auto 6px;max-width:120px">` : '' }
+      <h2 class="center">${escapeHtml(s.name)}</h2><div class="center small">${escapeHtml(s.addr||'')}</div>
+      ${ htmlParts }
+    </body></html>`;
+    printHtmlViaIframe(full);
+  }
+
+  // print all jobs for selected customer
+  function printAllJobsForSelected(){
+    if(!selectedCustomerId) return alert('Select a customer first');
+    const c = customers.find(x=>x.id===selectedCustomerId);
+    if(!c) return;
+    const arr = load(JOBS_KEY, []).filter(j => j.customer && (j.customer.mobile === c.mobile || (j.customer.name && j.customer.name.toLowerCase() === (c.name||'').toLowerCase())));
+    if(!arr.length) return alert('No jobs to print');
+    let htmlParts = '';
+    arr.forEach(j => {
+      const device = `${j.device?.type||''} ${j.device?.brand||''} ${j.device?.model||''}`.trim();
+      htmlParts += `<div style="page-break-after:always;padding:12px;border-bottom:1px dashed #ddd">
+        <h3 style="margin:0">Job ${escapeHtml(j.jobNo)} — ${escapeHtml(j.dateTime||'')}</h3>
+        <div>${escapeHtml(j.customer?.name||'')} (${escapeHtml(j.customer?.mobile||'')})</div>
+        <div style="margin-top:8px"><b>Device:</b> ${escapeHtml(device)}</div>
+        <div><b>Complaint:</b> ${escapeHtml(j.device?.complaint||'')}</div>
+        <div><b>Diagnosis:</b> ${escapeHtml(j.device?.diagnosis||'')}</div>
+        <div style="margin-top:8px;display:flex;justify-content:space-between"><div>Charge</div><div>₹${(j.charge||0).toFixed(2)}</div></div>
+      </div>`;
+    });
+    const s = buildCompanyHeader();
+    const full = `<!doctype html><html><head><meta charset="utf-8"><title>Jobs - ${escapeHtml(c.name)}</title>
+      <style>body{font-family:Quicksand,Arial;margin:12px;color:#111}.center{text-align:center}</style></head><body>
+      ${ s.logo ? `<img src="${s.logo}" style="display:block;margin:0 auto 6px;max-width:120px">` : '' }
+      <h2 class="center">${escapeHtml(s.name)}</h2><div class="center small">${escapeHtml(s.addr||'')}</div>
+      ${ htmlParts }
+    </body></html>`;
+    printHtmlViaIframe(full);
+  }
+
+  // interactions
+  $('searchInput').addEventListener('input', e => renderCustomers(e.target.value));
+  $('newCustBtn').addEventListener('click', ()=>{
+    selectedCustomerId = null; selName.value=''; selMobile.value=''; selAddress.value=''; selectedName.innerText='New customer'; selectedMeta.innerText='Fill details and click Save';
+  });
+
+  $('saveCustomerBtn').addEventListener('click', saveSelectedCustomer);
+  $('deleteCustomerBtn').addEventListener('click', deleteSelectedCustomer);
+
+  $('printCustomerBtn').addEventListener('click', ()=> {
+    if(!selectedCustomerId) return alert('Select a customer first');
+    const c = customers.find(x=>x.id===selectedCustomerId);
+    if(!c) return alert('Customer not found');
+    const s = buildCompanyHeader();
+    const d = c.lastDevice || {};
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(c.name)}</title>
+      <style>body{font-family:Quicksand,Arial;width:300px;margin:0;padding:10px;color:#111}.center{text-align:center}.line{border-top:1px dashed #bbb;margin:8px 0}</style></head><body>
+      ${ s.logo ? `<img src="${s.logo}" style="display:block;margin:0 auto 6px;max-width:100px">` : '' }
+      <div class="center" style="font-weight:700">${escapeHtml(s.name)}</div>
+      <div class="center small">${escapeHtml(s.addr||'')}</div>
+      <div class="line"></div>
+      <div><b>Name:</b> ${escapeHtml(c.name)}</div>
+      <div><b>Mobile:</b> ${escapeHtml(c.mobile)}</div>
+      <div><b>Address:</b> ${escapeHtml(c.address||'')}</div>
+      <div class="line"></div>
+      <div><b>Last Device:</b> ${escapeHtml((d.type||'') + ' ' + (d.brand||'') + ' ' + (d.model||''))}</div>
+      <div><b>Complaint:</b> ${escapeHtml(d.complaint||'')}</div>
+      <div><b>Diagnosis:</b> ${escapeHtml(d.diagnosis||'')}</div>
+      <div class="line"></div>
+      <div style="text-align:center;font-size:12px">Thank you!</div>
+      </body></html>`;
+    printHtmlViaIframe(html);
+  });
+
+  // table delegation (view/print)
+  custTableBody.addEventListener('click', e => {
+    const btn = e.target.closest('button');
+    if(!btn) return;
+    const act = btn.dataset.act, id = btn.dataset.id;
+    if(act === 'view') selectCustomer(id);
+    if(act === 'print') { selectCustomer(id); $('printCustomerBtn').click(); }
+  });
+
+  billsBody.addEventListener('click', e => {
+    const btn = e.target.closest('button');
+    if(!btn) return;
+    const act = btn.dataset.act, id = btn.dataset.id;
+    if(act === 'view-bill'){ const b = load(BILLS_KEY,[]).find(x=> (x.id===id) || String(x.billNo)===String(id)); if(b) { alert('Bill: ' + (b.billNo||b.id)); } }
+    if(act === 'print-bill') printBillById(id);
+  });
+
+  jobsBody.addEventListener('click', e => {
+    const btn = e.target.closest('button');
+    if(!btn) return;
+    const act = btn.dataset.act, id = btn.dataset.id;
+    if(act === 'view-job'){ const j = load(JOBS_KEY,[]).find(x=> x.id===id); if(j) { alert('Job: ' + (j.jobNo||j.id)); } }
+    if(act === 'print-job') printJobById(id);
+  });
+
+  // export / import / bulk print
+  $('exportBtn').addEventListener('click', ()=>{
+    const raw = JSON.stringify(load(CUSTOMERS_KEY,[]));
+    const blob = new Blob([raw], {type:'application/json'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'customers.json'; a.click();
+  });
+
+  $('exportBillsBtn').addEventListener('click', ()=>{
+    const raw = JSON.stringify(load(BILLS_KEY,[]));
+    const blob = new Blob([raw], {type:'application/json'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'bills.json'; a.click();
+  });
+
+  $('exportJobsBtn').addEventListener('click', ()=>{
+    const raw = JSON.stringify(load(JOBS_KEY,[]));
+    const blob = new Blob([raw], {type:'application/json'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'jobs.json'; a.click();
+  });
+
+  $('importBtn').addEventListener('click', ()=>{
+    const inp = document.createElement('input'); inp.type='file'; inp.accept='application/json';
+    inp.onchange = e => {
+      const f = e.target.files[0]; if(!f) return;
+      const r = new FileReader();
+      r.onload = ev => {
+        try {
+          const obj = JSON.parse(ev.target.result);
+          if(Array.isArray(obj)){
+            // merge: keep existing and add new with generated ids if missing
+            const existing = load(CUSTOMERS_KEY,[]);
+            obj.forEach(it => {
+              if(!it.id) it.id = 'c_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+              existing.push(it);
+            });
+            save(CUSTOMERS_KEY, existing);
+            customers = existing;
+            renderCustomers($('searchInput').value||'');
+            alert('Imported customers');
+          } else alert('JSON must be an array of customers');
+        } catch(err){ alert('Import failed: ' + err.message); }
+      };
+      r.readAsText(f);
+    };
+    inp.click();
+  });
+
+  // print all buttons
+  $('printAllBillsBtn').addEventListener('click', printAllBillsForSelected);
+  $('printAllJobsBtn').addEventListener('click', printAllJobsForSelected);
+
+  // initial render & sync
+  renderCustomers();
+  renderCounts();
+
+  // keep UI reactive when storage changed by other pages
+  window.addEventListener('storage', function(e){
+    if([CUSTOMERS_KEY, BILLS_KEY, JOBS_KEY, SETTINGS_KEY].includes(e.key)){
+      customers = load(CUSTOMERS_KEY,[]);
+      bills = load(BILLS_KEY,[]);
+      jobs = load(JOBS_KEY,[]);
+      settings = load(SETTINGS_KEY,{});
+      renderCustomers($('searchInput').value||'');
+      if(selectedCustomerId) selectCustomer(selectedCustomerId);
+      renderLogo();
+      renderCounts();
+    }
+  });
+
+  // highlight nav (same logic)
+  (function(){
+    try{
+      const path = (location.pathname || '').split('/').pop().toLowerCase() || 'customers.html';
+      const globalNav = document.getElementById('globalNav');
+      if(globalNav) globalNav.querySelectorAll('a').forEach(a=>{ const href=(a.getAttribute('href')||'').split('/').pop().toLowerCase(); if(href===path) a.classList.add('active'); else a.classList.remove('active'); });
+    }catch(e){}
+  })();
+
+  // mobile nav behaviour (same as other pages)
+  (function(){
+    const hamburger = document.getElementById('hamburgerBtn');
+    const mobileOverlay = document.getElementById('mobileNavOverlay');
+    const mobileClose = document.getElementById('mobileNavClose');
+    if(hamburger) hamburger.addEventListener('click', ()=>{ if(!mobileOverlay) return; mobileOverlay.classList.add('active'); mobileOverlay.setAttribute('aria-hidden','false'); document.body.style.overflow='hidden'; });
+    if(mobileClose) mobileClose.addEventListener('click', ()=>{ if(!mobileOverlay) return; mobileOverlay.classList.remove('active'); mobileOverlay.setAttribute('aria-hidden','true'); document.body.style.overflow=''; });
+    if(mobileOverlay) mobileOverlay.addEventListener('click', (e)=>{ if(e.target===mobileOverlay){ mobileOverlay.classList.remove('active'); document.body.style.overflow=''; }});
+  })();
+
+})();
+</script>
+ 
+</body>
+
+</script>
+
+</html>

@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Device Manager — Pandian Tech Service</title>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --bg:#f4f4f4;
+  --card:#fff;
+  --text:#111;
+  --muted:#666;
+  --accent:#111827;
+}
+*{box-sizing:border-box;}
+body{
+  font-family:'Quicksand',sans-serif;
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+}
+.wrap{
+  max-width:1100px;
+  margin:20px auto; /* keep top margin */
+  padding:18px;
+}
+h1{margin:0 0 8px;font-size:20px;}
+.lead{color:var(--muted);font-size:13px;margin-bottom:20px;}
+.card{
+  background:var(--card);
+  padding:16px;
+  border-radius:12px;
+  box-shadow:0 6px 18px rgba(0,0,0,0.05);
+  margin-bottom:16px;
+}
+.card h3{margin:0 0 10px;font-size:16px;}
+textarea{
+  width:100%;
+  height:140px;
+  border:1px solid #ccc;
+  border-radius:8px;
+  padding:8px;
+  font-size:13px;
+  font-family:inherit;
+  resize:none;
+}
+textarea:focus{
+  outline:2px solid var(--accent);
+  background:#f9f9f9;
+}
+.device-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:12px;
+  margin-top:10px;
+}
+.note{font-size:12px;color:var(--muted);}
+button.clear-btn{
+  background:#f3f4f6;
+  border:1px solid #ccc;
+  color:#111827;
+  font-size:12px;
+  padding:4px 8px;
+  border-radius:6px;
+  cursor:pointer;
+}
+button.clear-btn:hover{background:#e5e7eb;}
+.label-row{display:flex;align-items:center;justify-content:space-between;}
+.label-row label{font-weight:600;font-size:13px;}
+</style>
+</head>
+
+<body>
+<div class="wrap">
+  <h1>Device & Complaint Data Manager</h1>
+  <div class="lead">
+    Manage devices, brands, models, and common service issues.  
+    Press <b>Enter</b> to save or <b>-</b> to delete instantly.
+  </div>
+
+  <div class="card">
+    <h3>Device Hierarchy</h3>
+    <div class="device-grid">
+      <div>
+        <div class="label-row">
+          <label>Device Types</label>
+          <button class="clear-btn" data-field="deviceType">Clear</button>
+        </div>
+        <textarea id="deviceType"></textarea>
+      </div>
+      <div>
+        <div class="label-row">
+          <label>Brands</label>
+          <button class="clear-btn" data-field="deviceBrand">Clear</button>
+        </div>
+        <textarea id="deviceBrand"></textarea>
+      </div>
+      <div>
+        <div class="label-row">
+          <label>Models</label>
+          <button class="clear-btn" data-field="deviceModel">Clear</button>
+        </div>
+        <textarea id="deviceModel"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Service Info</h3>
+    <div class="device-grid">
+      <div>
+        <div class="label-row">
+          <label>Common Complaints</label>
+          <button class="clear-btn" data-field="custComplaint">Clear</button>
+        </div>
+        <textarea id="custComplaint"></textarea>
+      </div>
+      <div>
+        <div class="label-row">
+          <label>Common Diagnoses</label>
+          <button class="clear-btn" data-field="techDiagnosis">Clear</button>
+        </div>
+        <textarea id="techDiagnosis"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">
+    All data is saved automatically and synced across Billing, Service, and Customer pages.
+  </p>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const OPTIONS_KEY = 'serviceOptions';
+
+  // Load & Save helpers
+  const load = (key, fallback) => {
+    try {
+      const val = localStorage.getItem(key);
+      return val ? JSON.parse(val) : fallback;
+    } catch {
+      return fallback;
+    }
+  };
+  const save = (key, val) => localStorage.setItem(key, JSON.stringify(val));
+
+  // Load existing data
+  let options = load(OPTIONS_KEY, {
+    deviceType: [],
+    deviceBrand: [],
+    deviceModel: [],
+    custComplaint: [],
+    techDiagnosis: []
+  });
+
+  const fields = ['deviceType','deviceBrand','deviceModel','custComplaint','techDiagnosis'];
+
+  // Render & attach listeners
+  function render(){
+    fields.forEach(k=>{
+      const ta = $(k);
+      options = load(OPTIONS_KEY, options);
+      ta.value = (options[k] || []).join('\n');
+
+      // ENTER to save or "-" to delete
+      ta.addEventListener('keydown', e=>{
+        if(e.key === 'Enter'){
+          e.preventDefault();
+          const lines = ta.value.split('\n').map(x=>x.trim()).filter(Boolean);
+          const val = lines[lines.length-1];
+          if(!options[k]) options[k]=[];
+          if(val === '-') options[k].pop();
+          else if(val && !options[k].includes(val)) options[k].push(val);
+          save(OPTIONS_KEY, options);
+          ta.value = options[k].join('\n') + '\n';
+          ta.selectionStart = ta.selectionEnd = ta.value.length;
+        }
+      });
+
+      // Save on blur
+      ta.addEventListener('blur', ()=>{
+        const lines = ta.value.split('\n').map(x=>x.trim()).filter(Boolean);
+        options[k] = Array.from(new Set(lines));
+        save(OPTIONS_KEY, options);
+      });
+    });
+
+    // Clear all button
+    document.querySelectorAll('.clear-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const field = btn.dataset.field;
+        if(confirm(`Clear all ${field.replace(/([A-Z])/g,' $1')} entries?`)){
+          options[field] = [];
+          save(OPTIONS_KEY, options);
+          $(field).value = '';
+        }
+      });
+    });
+  }
+
+  window.addEventListener('DOMContentLoaded', render);
+})();
+</script>
+
+</body>
+</html>

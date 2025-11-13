@@ -1,0 +1,1269 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Billing — Pandian Tech Service</title>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f8fafc;
+    --card:#fff;
+    --muted:#6b7280;
+    --text:#111827;
+    --accent:#374151;
+    --header-h:0px; /* header removed: offset controlled below (0) */
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{font-family:'Quicksand',sans-serif;margin:0;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+  /* main container */
+  .wrap{max-width:1100px;margin:18px auto;padding:14px}
+  .layout{display:grid;grid-template-columns:1fr 380px;gap:16px}
+  @media(max-width:980px){.layout{grid-template-columns:1fr}}
+  .card{background:var(--card);padding:14px;border-radius:10px;box-shadow:0 6px 18px rgba(16,24,40,0.04)}
+  .search-row{display:flex;gap:8px;margin-bottom:12px}
+  input[type=search],input[type=text],input[type=number],select,textarea{width:100%;padding:10px;border-radius:8px;border:1px solid #e6e6e6;font-family:inherit}
+  button{background:#111827;color:#fff;border:0;padding:10px 12px;border-radius:8px;cursor:pointer;font-family:inherit}
+  button.ghost{background:transparent;color:var(--accent);border:1px solid #e6e6e6}
+  .product-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
+  .prod{background:#fff;padding:8px;border-radius:8px;border:1px solid #f1f1f1;display:flex;flex-direction:column;gap:6px}
+  .prod h4{margin:6px 0;font-size:14px}
+  .prod p{margin:0;font-size:13px;color:var(--muted)}
+  .cart{display:flex;flex-direction:column;gap:8px}
+  .cart-item{display:flex;gap:8px;align-items:center;padding:8px;background:#fafafa;border-radius:8px}
+  .cart-item .name{flex:1;font-weight:600}
+  .muted{color:var(--muted)}
+  .small{font-size:13px}
+  .tot-row{display:flex;justify-content:space-between;margin-top:6px;align-items:center}
+  .gst-block{margin-top:10px;padding:8px;border-radius:8px;background:#fbfbfb;border:1px dashed #e6e6e6}
+  .gst-toggle{display:flex;gap:8px;align-items:center}
+  .scanner-modal-inner { width:340px; height:360px; border-radius:10px; background:#fff; display:flex; flex-direction:column; justify-content:space-between; padding:8px 12px; }
+
+  /* autosave toast */
+  #autosaveToast {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    background: rgba(0,0,0,0.85);
+    color: #fff;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    display: none;
+    z-index: 200000;
+  }
+
+  /* small helpers for mobile adjustments inside content */
+  @media(max-width:600px){
+    .search-row{flex-direction:column}
+    .layout{grid-template-columns:1fr}
+    .card{padding:12px}
+    .product-list{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+  }
+
+  /* print styles */
+  @media print{
+    body *{visibility:hidden}
+    #printArea, #printArea *{visibility:visible}
+    #printArea{position:fixed;left:0;top:0;width:100%}
+  }
+
+  /* small visual helpers */
+  .small-btn{padding:6px 8px;border-radius:8px;font-size:13px}
+</style>
+</head>
+<body>
+
+  <!-- PAGE CONTENT (HEADER REMOVED ON PURPOSE — IDs unchanged for JS) -->
+  <div class="wrap">
+    <div class="layout">
+      <div>
+        <div class="card">
+          <div class="search-row" role="search">
+            <input id="barcodeInput" type="text" placeholder="Scan or enter barcode and press Enter" aria-label="Barcode input">
+            <button id="scanBtn" class="ghost" aria-label="Open scanner">📷</button>
+            <input id="searchProd" type="search" placeholder="Search product name..." style="width:340px" aria-label="Search products">
+          </div>
+
+          <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
+            <button id="reloadProducts" class="ghost small-btn">↻ Reload</button>
+            <div style="flex:1"></div>
+            <div style="font-size:13px;color:var(--muted)">Date</div>
+            <input id="billDatePicker" type="date"
+                   style="width:140px;padding:6px;border:1px solid #e6e6e6;border-radius:6px;font-size:13px;">
+          </div>
+
+          <div style="display:flex;gap:8px;margin-bottom:12px;margin-top:6px;flex-wrap:wrap">
+            <input id="custName" type="text" placeholder="Customer name" style="flex:1">
+            <input id="custMobile" type="text" placeholder="Mobile" style="width:140px">
+          </div>
+
+          <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+            <input id="custAddress" type="text" placeholder="Address (optional)" style="flex:1">
+            <button id="findCust" class="ghost small-btn">Find</button>
+          </div>
+
+          <div style="margin-bottom:10px"><strong>Products</strong></div>
+          <div id="productList" class="product-list" aria-live="polite"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <div style="display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <div><h3 style="margin:0">Cart</h3></div>
+            <div style="text-align:right">
+              <div style="font-size:12px;color:var(--muted)">Bill No</div>
+              <div id="billNo" style="font-weight:700">300</div>
+            </div>
+          </div>
+
+          <div id="cart" class="cart" aria-live="polite"></div>
+
+          <hr>
+
+          <div>
+            <div class="tot-row"><div class="small muted">Subtotal</div><div class="small" id="subtotalVal">₹0</div></div>
+
+            <div style="display:flex;justify-content:space-between;margin-top:6px;align-items:center">
+              <div style="flex:1">
+                <div class="small muted">Discount (₹)</div>
+                <input id="discount" type="number" value="0" style="width:100%;max-width:260px;margin-top:6px">
+              </div>
+              <div style="width:18px"></div>
+            </div>
+
+            <!-- GST toggle and selector inside payment card -->
+            <div class="gst-block" id="gstBlock" role="region" aria-label="GST settings">
+              <div class="gst-toggle">
+                <label class="small muted" for="gstToggle">Enable GST</label>
+                <input id="gstToggle" type="checkbox" aria-label="Enable GST" />
+                <div style="flex:1"></div>
+                <label class="small muted" for="gstPercent">GST %</label>
+                <select id="gstPercent" style="width:100px" disabled>
+                  <option value="0">0%</option>
+                  <option value="5">5%</option>
+                  <option value="12">12%</option>
+                  <option value="18" selected>18%</option>
+                  <option value="28">28%</option>
+                </select>
+              </div>
+
+              <div id="gstInclusiveBlock" style="margin-top:8px;display:none">
+                <label class="small muted">GST already included in product price</label>
+                <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+                  <input id="gstInclusiveToggle" type="checkbox" />
+                  <span class="small muted">Inclusive</span>
+                </div>
+              </div>
+
+              <div id="gstDetails" style="margin-top:8px;display:none">
+                <div class="tot-row"><div class="small muted">GST Amount</div><div class="small" id="gstAmount">₹0</div></div>
+                <div class="tot-row"><div class="small muted">CGST</div><div class="small" id="cgstVal">₹0</div></div>
+                <div class="tot-row"><div class="small muted">SGST</div><div class="small" id="sgstVal">₹0</div></div>
+              </div>
+            </div>
+
+            <div class="tot-row" style="margin-top:10px"><div class="small muted">Total</div><div id="totalVal" style="font-weight:700">₹0</div></div>
+
+            <div style="display:flex;justify-content:space-between;margin-top:6px"><div class="small muted">Paid</div><input id="paid" type="number" value="0" style="width:120px"></div>
+            <div style="display:flex;justify-content:space-between;margin-top:6px"><div class="small muted" id="balLabel">Balance</div><div id="balVal">₹0</div></div>
+
+            <div style="margin-top:10px">
+              <label class="small muted">Payment Mode</label>
+              <select id="payMode" aria-label="Payment mode"></select>
+            </div>
+
+            <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+              <button id="saveBill">Save Bill</button>
+              <button id="printBill" class="ghost">Print</button>
+              <button id="shareWa" class="ghost">Share WhatsApp</button>
+              <button id="clearCart" class="ghost">Clear</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card small" style="margin-top:12px">
+          <strong>Totals</strong>
+          <div style="margin-top:8px" class="small">Items: <span id="totalItems">0</span></div>
+          <div class="small" style="margin-top:6px">Unique SKUs: <span id="uniqueSkus">0</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="autosaveToast">Saving…</div>
+
+  <!-- hidden print area (used by print function) -->
+  <div id="printArea" style="display:none"></div>
+
+  <!-- html5-qrcode library (scanner) -->
+  <script src="https://unpkg.com/html5-qrcode"></script>
+<script>
+/*
+  Part 2 — Billing page JavaScript (fully functional + sync)
+  - Paste this inside billing.html where indicated.
+  - Works with the Part 1 HTML provided earlier (IDs/classes expected).
+*/
+
+(function(){
+  // ---------- constants & keys ----------
+  const PRODUCTS_KEY = 'products';
+  const BILLS_KEY = 'bills';
+  const CUSTOMERS_KEY = 'customers';
+  const SETTINGS_KEY = 'companyDetails';
+  const STOCK_SYNC_KEY = 'stockSyncEvent';
+
+  // ---------- DOM helpers ----------
+  const $ = id => document.getElementById(id);
+
+  // ---------- in-memory stores (mirror localStorage) ----------
+  let products = JSON.parse(localStorage.getItem(PRODUCTS_KEY) || '[]');
+  let bills = JSON.parse(localStorage.getItem(BILLS_KEY) || '[]');
+  let customers = JSON.parse(localStorage.getItem(CUSTOMERS_KEY) || '[]');
+  let settings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+
+  // billing runtime
+  let cart = [];
+
+  // ---------- init wiring ----------
+  function init() {
+    // Set default date
+    const billDatePicker = $('billDatePicker');
+    if (billDatePicker) {
+      billDatePicker.value = new Date().toISOString().split('T')[0];
+    }
+
+    populatePayModes();
+    renderProducts();
+    updateBillHeader();
+    refreshCartUI();
+
+    // Live listeners
+    bindUI();
+    attachStorageListener();
+    attachFocusRefresh();
+    startPollingSettings();
+  }
+
+  // ---------- UI bindings ----------
+  function bindUI(){
+    // search
+    if($('searchProd')) $('searchProd').addEventListener('input', renderProducts);
+
+    // reload
+    if($('reloadProducts')) $('reloadProducts').addEventListener('click', ()=> {
+      products = JSON.parse(localStorage.getItem(PRODUCTS_KEY) || '[]');
+      renderProducts();
+      alert('Products reloaded from catalogue!');
+    });
+
+    // barcode enter
+    if($('barcodeInput')) $('barcodeInput').addEventListener('keydown', e=>{
+      if(e.key === 'Enter'){
+        const code = $('barcodeInput').value.trim();
+        if(!code) return;
+        const prod = products.find(p => (p.barcode||'').toString() === code.toString());
+        if(prod) addToCart(prod.id);
+        else alert('Product not found for barcode: ' + code);
+        $('barcodeInput').value = '';
+      }
+    });
+
+    // find customer
+    if($('findCust')) $('findCust').addEventListener('click', ()=> {
+      const q = (($('custName').value||'').trim() || ($('custMobile').value||'').trim());
+      if(!q) return alert('Type name or mobile to search');
+      const found = customers.find(c => (c.mobile && c.mobile.includes(q)) || (c.name && c.name.toLowerCase().includes(q.toLowerCase())));
+      if(!found) return alert('Customer not found');
+      $('custName').value = found.name || '';
+      $('custMobile').value = found.mobile || '';
+      $('custAddress').value = found.address || '';
+      alert('Customer loaded');
+    });
+
+    // discount, gst, paid changes
+    if($('discount')) $('discount').addEventListener('input', computeTotals);
+    if($('gstToggle')) $('gstToggle').addEventListener('change', ()=>{ $('gstPercent').disabled = !$('gstToggle').checked; computeTotals(); });
+    if($('gstPercent')) $('gstPercent').addEventListener('change', computeTotals);
+    if($('gstInclusiveToggle')) $('gstInclusiveToggle').addEventListener('change', computeTotals);
+    if($('paid')) $('paid').addEventListener('input', computeTotals);
+
+    // actions
+    if($('saveBill')) $('saveBill').addEventListener('click', saveBill);
+    if($('printBill')) $('printBill').addEventListener('click', printBill);
+    if($('shareWa')) $('shareWa').addEventListener('click', shareWhatsApp);
+    if($('clearCart')) $('clearCart').addEventListener('click', ()=> { if(confirm('Clear cart?')){ cart=[]; refreshCartUI(); }});
+
+    // scanner
+    if($('scanBtn')) $('scanBtn').addEventListener('click', openScannerModal);
+  }
+
+  // ---------- product rendering ----------
+  function renderProducts(){
+    const list = $('productList'); if(!list) return;
+    list.innerHTML = '';
+    const q = ($('searchProd') ? ($('searchProd').value || '') : '').toLowerCase().trim();
+
+    // ensure products up-to-date from storage
+    try { products = JSON.parse(localStorage.getItem(PRODUCTS_KEY) || '[]'); } catch(e){}
+
+    const filtered = products.filter(p => {
+      if(!q) return true;
+      return ((p.name||'').toLowerCase().includes(q) || (p.barcode||'').toLowerCase().includes(q) || (p.category||'').toLowerCase().includes(q));
+    });
+
+    if(!filtered.length){
+      list.innerHTML = '<div style="padding:12px;color:var(--muted)">No products found.</div>';
+      return;
+    }
+
+    filtered.forEach(p => {
+      const stockNum = (typeof p.stock === 'undefined') ? null : Number(p.stock);
+      let stockText = '';
+      let disabled = false;
+      if(stockNum === null) stockText = `Stock: —`;
+      else if(stockNum <= 0){ stockText = `<span style="color:#ef4444;font-weight:600;">Out of Stock</span>`; disabled = true; }
+      else stockText = `Stock: ${stockNum}`;
+
+      const div = document.createElement('div');
+      div.className = 'prod';
+      div.innerHTML = `
+        <h4>${escapeHtml(p.name)}</h4>
+        <p class="muted">₹${p.price} • ${stockText}</p>
+        <p class="muted">${p.barcode||''}</p>
+        <div style="margin-top:6px;display:flex;gap:8px">
+          <button class="ghost small-btn" data-id="${p.id}" ${disabled ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''}>${disabled ? 'Unavailable' : 'Add'}</button>
+        </div>`;
+      list.appendChild(div);
+    });
+
+    // attach add buttons
+    list.querySelectorAll('button[data-id]').forEach(b => {
+      b.addEventListener('click', e => addToCart(e.currentTarget.dataset.id));
+    });
+  }
+
+  // ---------- cart operations ----------
+  window.addToCart = function(id){
+    const p = products.find(x => x.id === id);
+    if(!p) return alert('Product not found');
+    const stockDefined = typeof p.stock !== 'undefined';
+    const stockVal = stockDefined ? Number(p.stock) : null;
+    if(stockDefined && stockVal <= 0) return alert(`⚠️ "${p.name}" is out of stock and cannot be added to the bill.`);
+
+    const existing = cart.find(c => c.id === p.id);
+    if(existing){
+      if(stockDefined && existing.qty + 1 > stockVal) {
+        return alert(`⚠️ Cannot add more — only ${stockVal} left in stock for "${p.name}".`);
+      }
+      existing.qty += 1;
+      existing.lineTotal = existing.qty * existing.rate;
+      if(stockDefined && stockVal - existing.qty <= 3){
+        alert(`⚠️ Low Stock: Only ${stockVal - existing.qty} left for "${p.name}".`);
+      }
+    } else {
+      if(stockDefined && stockVal <= 3){
+        alert(`⚠️ Low Stock: Only ${stockVal} left for "${p.name}".`);
+      }
+      cart.push({ id: p.id, name: p.name, rate: Number(p.price)||0, qty: 1, lineTotal: Number(p.price)||0 });
+    }
+    refreshCartUI();
+  };
+
+  function refreshCartUI(){
+    const c = $('cart'); if(!c) return;
+    c.innerHTML = '';
+    let subtotal = 0;
+
+    cart.forEach(item => {
+      const div = document.createElement('div'); div.className = 'cart-item';
+      div.innerHTML = `
+        <div class="name">${escapeHtml(item.name)}</div>
+        <div style="width:80px"><input type="number" value="${item.qty}" min="1" style="width:72px" data-id="${item.id}" class="qtyInput"></div>
+        <div style="width:90px">₹ <input type="number" value="${item.rate}" style="width:80px" data-id-rate="${item.id}" class="rateInput"></div>
+        <div style="width:40px"><button class="ghost small-btn" data-id="${item.id}">✕</button></div>
+      `;
+      c.appendChild(div);
+      subtotal += (item.qty * item.rate);
+    });
+
+    if($('subtotalVal')) $('subtotalVal').innerText = '₹' + subtotal.toFixed(2);
+
+    computeTotals();
+
+    // handlers for qty/rate/remove
+    c.querySelectorAll('.qtyInput').forEach(inp => {
+      inp.addEventListener('change', e => {
+        const id = e.target.dataset.id;
+        const v = Math.max(1, Number(e.target.value) || 1);
+        const it = cart.find(cc => cc.id === id); if(!it) return;
+        const prod = products.find(p => p.id === id);
+        if(prod && typeof prod.stock !== 'undefined'){
+          const available = Number(prod.stock) || 0;
+          if(v > available){
+            alert(`⚠️ Requested quantity exceeds stock. Only ${available} available for "${prod.name}".`);
+            e.target.value = available;
+            it.qty = available;
+          } else it.qty = v;
+        } else it.qty = v;
+        it.lineTotal = it.qty * it.rate;
+        refreshCartUI();
+      });
+    });
+
+    c.querySelectorAll('.rateInput').forEach(inp => {
+      inp.addEventListener('change', e => {
+        const id = e.target.dataset.idRate;
+        const v = Number(e.target.value) || 0;
+        const it = cart.find(cc => cc.id === id); if(!it) return;
+        it.rate = v; it.lineTotal = it.qty * it.rate; refreshCartUI();
+      });
+    });
+
+    c.querySelectorAll('.cart-item button').forEach(b => {
+      b.addEventListener('click', e => {
+        const id = e.target.dataset.id; cart = cart.filter(x => x.id !== id); refreshCartUI();
+      });
+    });
+
+    if($('totalItems')) $('totalItems').innerText = cart.reduce((s,i)=>s + i.qty, 0);
+    if($('uniqueSkus')) $('uniqueSkus').innerText = cart.length;
+  }
+
+  // ---------- totals, GST, balance ----------
+  function computeTotals(){
+    const subtotal = cart.reduce((s,i)=>s + (i.qty * i.rate), 0);
+    const discount = Number($('discount') ? $('discount').value : 0) || 0;
+    const gstEnabled = $('gstToggle') ? $('gstToggle').checked : false;
+    const gstPercent = Number($('gstPercent') ? $('gstPercent').value : 0) || 0;
+    const gstInclusive = $('gstInclusiveToggle') ? $('gstInclusiveToggle').checked : false;
+
+    const baseAfterDiscount = Math.max(0, subtotal - discount);
+    let gstAmount = 0, taxable = 0, total = 0;
+
+    if(gstEnabled && gstPercent > 0){
+      if(gstInclusive){
+        taxable = baseAfterDiscount / (1 + gstPercent/100);
+        gstAmount = baseAfterDiscount - taxable;
+        total = baseAfterDiscount;
+      } else {
+        taxable = baseAfterDiscount;
+        gstAmount = taxable * (gstPercent/100);
+        total = taxable + gstAmount;
+      }
+    } else {
+      taxable = baseAfterDiscount;
+      gstAmount = 0;
+      total = taxable;
+    }
+
+    const cgst = gstAmount / 2;
+    const sgst = gstAmount / 2;
+
+    if($('gstAmount')) $('gstAmount').innerText = '₹' + gstAmount.toFixed(2);
+    if($('cgstVal')) $('cgstVal').innerText = '₹' + cgst.toFixed(2);
+    if($('sgstVal')) $('sgstVal').innerText = '₹' + sgst.toFixed(2);
+    if($('totalVal')) $('totalVal').innerText = '₹' + total.toFixed(2);
+
+    const paid = Number($('paid') ? $('paid').value : 0) || 0;
+    if(paid >= total){
+      if($('balLabel')) $('balLabel').innerText = 'Change to Return';
+      if($('balVal')) $('balVal').innerText = '₹' + (paid - total).toFixed(2);
+    } else {
+      if($('balLabel')) $('balLabel').innerText = 'Balance';
+      if($('balVal')) $('balVal').innerText = '₹' + (total - paid).toFixed(2);
+    }
+
+    // show/hide GST details & inclusive option
+    if(gstEnabled && gstPercent > 0){
+      if($('gstPercent')) $('gstPercent').disabled = false;
+      if($('gstDetails')) $('gstDetails').style.display = '';
+      if($('gstInclusiveBlock')) $('gstInclusiveBlock').style.display = '';
+    } else {
+      if($('gstPercent')) $('gstPercent').disabled = true;
+      if($('gstDetails')) $('gstDetails').style.display = 'none';
+      if($('gstInclusiveBlock')) $('gstInclusiveBlock').style.display = 'none';
+    }
+  }
+
+  // ---------- pay modes & header ----------
+  function populatePayModes(){
+    const sel = $('payMode'); if(!sel) return;
+    sel.innerHTML = '';
+    const arr = (settings.paymentModes || 'Cash,UPI,Card,Bank Transfer').split(',');
+    arr.forEach(a => { const o = document.createElement('option'); o.value = a; o.text = a; sel.appendChild(o); });
+  }
+
+  function updateBillHeader(){
+    const start = Number(settings.startBillNo || 300);
+    const last = bills.length ? Math.max(...bills.map(b => Number(b.billNo || start-1))) : start - 1;
+    const next = Math.max(start, last + 1);
+    if($('billNo')) $('billNo').innerText = next;
+    // pageTitle element removed in Part1; keep compatibility if exists
+    if($('pageTitle')) $('pageTitle').innerText = 'Billing — ' + (settings.companyName || 'Pandian Tech Service');
+  }
+
+  // ---------- saving a bill (with stock update + sync) ----------
+  function saveBill(){
+    const custName = ($('custName') ? $('custName').value.trim() : '');
+    const custMobile = ($('custMobile') ? $('custMobile').value.trim() : '');
+
+    if(!custName) { alert('Customer name is required before saving the bill.'); $('custName') && $('custName').focus(); return; }
+    if(!custMobile) { alert('Customer mobile number is required before saving the bill.'); $('custMobile') && $('custMobile').focus(); return; }
+    if(!/^\d{10}$/.test(custMobile)) { alert('Please enter a valid 10-digit mobile number.'); $('custMobile') && $('custMobile').focus(); return; }
+    if(!cart.length) return alert('Cart is empty');
+
+    const billNo = Number($('billNo') ? $('billNo').innerText : 300) || 300;
+    const dateTime = new Date().toLocaleString();
+    const subtotal = cart.reduce((s,i)=>s + (i.qty * i.rate), 0);
+    const discount = Number($('discount') ? $('discount').value : 0) || 0;
+    const gstEnabled = $('gstToggle') ? $('gstToggle').checked : false;
+    const gstPercent = Number($('gstPercent') ? $('gstPercent').value : 0) || 0;
+    const gstInclusive = $('gstInclusiveToggle') ? $('gstInclusiveToggle').checked : false;
+    const baseAfterDiscount = Math.max(0, subtotal - discount);
+    let gstAmount = 0, taxable = 0, total = 0;
+
+    if(gstEnabled && gstPercent > 0){
+      if(gstInclusive){
+        taxable = baseAfterDiscount / (1 + gstPercent/100);
+        gstAmount = baseAfterDiscount - taxable;
+        total = baseAfterDiscount;
+      } else {
+        taxable = baseAfterDiscount;
+        gstAmount = taxable * (gstPercent/100);
+        total = taxable + gstAmount;
+      }
+    } else { taxable = baseAfterDiscount; gstAmount = 0; total = taxable; }
+
+    const paid = Number($('paid') ? $('paid').value : 0) || 0;
+    const balance = Math.max(0, total - paid);
+    const change = paid > total ? paid - total : 0;
+
+    const bill = {
+      id: 'bill_' + Date.now(),
+      billNo,
+      dateTime,
+      customer: { name: custName, mobile: custMobile, address: ($('custAddress') ? $('custAddress').value : '') || '' },
+      items: JSON.parse(JSON.stringify(cart)),
+      subtotal, discount, gstEnabled, gstPercent, gstInclusive, gstAmount, cgst: gstAmount/2, sgst: gstAmount/2,
+      total, paid, balance, change, paymentMode: ($('payMode') ? $('payMode').value : '')
+    };
+
+    // persist bill
+    bills.push(bill);
+    try { localStorage.setItem(BILLS_KEY, JSON.stringify(bills)); } catch(e){ console.warn('Failed to save bills', e); }
+
+    // update customers
+    try {
+      let cust = customers.find(c => c.mobile === custMobile || (c.name && c.name.toLowerCase() === custName.toLowerCase()));
+      const lastDevice = { type:'', brand:'', model:'' };
+      if(!cust){
+        cust = { id: 'c_' + Date.now(), name: custName, mobile: custMobile, address: $('custAddress') ? $('custAddress').value : '', jobs: [], lastDevice };
+        customers.push(cust);
+      } else {
+        cust.name = custName;
+        cust.address = ($('custAddress') ? $('custAddress').value : '') || cust.address;
+      }
+      localStorage.setItem(CUSTOMERS_KEY, JSON.stringify(customers));
+    } catch (err) { console.warn('Customer save failed', err); }
+
+    // stock maintenance (update products in storage & in-memory + notify other pages)
+    try {
+      const allProducts = JSON.parse(localStorage.getItem(PRODUCTS_KEY) || '[]');
+      let changed = false;
+      bill.items.forEach(it => {
+        const prod = allProducts.find(p => p.id === it.id);
+        if(prod && typeof prod.stock !== 'undefined'){
+          const oldStock = Number(prod.stock) || 0;
+          const newStock = Math.max(0, oldStock - Number(it.qty));
+          if(newStock !== oldStock){
+            prod.stock = newStock;
+            changed = true;
+            console.log(`📦 Stock updated: ${prod.name} → ${newStock}`);
+          }
+        }
+      });
+      if(changed){
+        // update in-memory + localStorage
+        products = allProducts;
+        localStorage.setItem(PRODUCTS_KEY, JSON.stringify(allProducts));
+        // set a timestamped event for other tabs to pick up
+        try { localStorage.setItem(STOCK_SYNC_KEY, Date.now().toString()); } catch(e){}
+        // refresh UI immediately
+        renderProducts();
+      }
+    } catch (err) {
+      console.warn('Stock update failed:', err);
+    }
+
+    alert('Bill saved — #' + billNo);
+    updateBillHeader();
+    // don't clear cart automatically (keeps behavior similar to previous)
+  }
+
+  // ---------- printing ----------
+  function printBill(){
+    if(!cart.length) return alert('Cart empty');
+
+    // always get fresh settings from storage to avoid cached inconsistency
+    try { settings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'); } catch(e){}
+
+    const s = settings || {};
+    const logo = localStorage.getItem('companyLogo') || s.logo || '';
+    const printerType = (s.printType || s.printerType || 'A4').toString().toLowerCase();
+    const billNo = $('billNo') ? $('billNo').innerText : '';
+    const date = new Date().toLocaleString();
+
+    const subtotal = cart.reduce((s,i)=>s + (i.qty * i.rate), 0);
+    const discount = Number($('discount') ? $('discount').value : 0) || 0;
+    const gstEnabled = $('gstToggle') ? $('gstToggle').checked : false;
+    const gstPercent = Number($('gstPercent') ? $('gstPercent').value : 0) || 0;
+    const gstInclusive = $('gstInclusiveToggle') ? $('gstInclusiveToggle').checked : false;
+    const baseAfterDiscount = Math.max(0, subtotal - discount);
+
+    let gstAmount = 0, taxable = 0, total = 0;
+    if(gstEnabled && gstPercent > 0){
+      if(gstInclusive){ taxable = baseAfterDiscount / (1 + gstPercent/100); gstAmount = baseAfterDiscount - taxable; total = baseAfterDiscount; }
+      else { taxable = baseAfterDiscount; gstAmount = taxable * (gstPercent/100); total = taxable + gstAmount; }
+    } else { taxable = baseAfterDiscount; gstAmount = 0; total = taxable; }
+
+    const cgst = gstAmount / 2, sgst = gstAmount / 2;
+    const paid = Number($('paid') ? $('paid').value : 0) || 0;
+    const change = paid > total ? paid - total : 0;
+    const balance = total - paid > 0 ? total - paid : 0;
+
+    const itemsHtml = cart.map(it => `<div class="item-row" style="display:flex;justify-content:space-between;margin:2px 0"><div>${escapeHtml(it.name)} x${it.qty}</div><div>₹${(it.qty * it.rate).toFixed(2)}</div></div>`).join('');
+
+    const gstHtml = gstEnabled ? `<div style="display:flex;justify-content:space-between"><span>GST (${gstPercent}%)</span><span>₹${gstAmount.toFixed(2)}</span></div>
+      <div style="display:flex;justify-content:space-between"><span>CGST</span><span>₹${cgst.toFixed(2)}</span></div>
+      <div style="display:flex;justify-content:space-between"><span>SGST</span><span>₹${sgst.toFixed(2)}</span></div>` : '';
+
+    const style = `
+      <style>
+        *{box-sizing:border-box}
+        body{font-family:'Quicksand',sans-serif;margin:0;color:#000}
+        .center{text-align:center}
+        .bold{font-weight:700}
+        .line{border-top:1px dashed #000;margin:6px 0}
+        .small{font-size:12px}
+        .item-row{display:flex;justify-content:space-between;font-size:12px}
+      </style>`;
+
+    // choose thermal or a4
+    const html = printerType.includes('a4') ?
+      `<!doctype html><html><head><meta charset="utf-8"><title>Invoice ${billNo}</title>${style}<style>@page{size:A4;margin:15mm;}body{font-size:13px}</style></head><body>
+        <div style="padding:10px">
+          ${logo?`<div style="text-align:center"><img src="${logo}" style="max-width:90px;max-height:90px" alt="logo"></div>`:''}
+          <h2 class="center" style="margin:0">${escapeHtml(s.companyName || 'Pandian Tech Service')}</h2>
+          <div class="center small">${escapeHtml(s.companyAddress || s.address || '')}</div>
+          ${s.companyPhone?`<div class="center small">📞 ${escapeHtml(s.companyPhone)}</div>`:''}
+          <div class="line"></div>
+          <div style="display:flex;justify-content:space-between"><div>Bill No: <strong>${billNo}</strong></div><div>Date: ${escapeHtml(date)}</div></div>
+          <div style="margin-top:8px">Customer: ${escapeHtml($('custName')?$('custName').value:'-')} (${escapeHtml($('custMobile')?$('custMobile').value:'-')})</div>
+          ${$('custAddress') && $('custAddress').value ? `<div>Address: ${escapeHtml($('custAddress').value)}</div>` : ''}
+          <div class="line"></div>
+          <table style="width:100%;border-collapse:collapse;margin-top:6px">
+            <thead><tr style="text-align:left"><th>Item</th><th>Qty</th><th>Rate</th><th>Total</th></tr></thead>
+            <tbody>
+              ${cart.map(it=>`<tr><td>${escapeHtml(it.name)}</td><td>${it.qty}</td><td>₹${it.rate.toFixed(2)}</td><td>₹${(it.qty*it.rate).toFixed(2)}</td></tr>`).join('')}
+            </tbody>
+          </table>
+          <div style="margin-top:8px;float:right;max-width:320px">
+            <div style="display:flex;justify-content:space-between">Subtotal <span>₹${subtotal.toFixed(2)}</span></div>
+            <div style="display:flex;justify-content:space-between">Discount <span>₹${discount.toFixed(2)}</span></div>
+            ${gstHtml}
+            <div class="line"></div>
+            <div style="display:flex;justify-content:space-between;font-weight:700">Total <span>₹${total.toFixed(2)}</span></div>
+            <div style="display:flex;justify-content:space-between">Paid <span>₹${paid.toFixed(2)}</span></div>
+            <div style="display:flex;justify-content:space-between">${paid>=total?'Change':'Balance'} <span>₹${(paid>=total?change:balance).toFixed(2)}</span></div>
+          </div>
+          <div style="clear:both"></div>
+          <div style="text-align:center;margin-top:18px">Thank you for choosing <b>${escapeHtml(s.companyName || 'Pandian Tech Service')}</b>!</div>
+        </div>
+      </body></html>` :
+      `<!doctype html><html><head><meta charset="utf-8"><title>Invoice ${billNo}</title>${style}<style>@page{size:${(printerType.includes('58')?'58mm':'80mm')} auto;margin:3mm;}body{font-size:12px;width:${(printerType.includes('58')?'58mm':'80mm')}}.item-row{display:flex;justify-content:space-between}</style></head><body>
+        <div style="padding:6px">
+          ${logo?`<div style="text-align:center"><img src="${logo}" style="max-width:60px;max-height:60px" alt="logo"></div>`:''}
+          <div class="center bold" style="font-size:14px">${escapeHtml(s.companyName || 'Pandian Tech Service')}</div>
+          <div class="center small">${escapeHtml(s.companyAddress || s.address || '')}</div>
+          ${s.companyPhone?`<div class="center small">📞 ${escapeHtml(s.companyPhone)}</div>`:''}
+          <div class="line"></div>
+          <div style="font-size:12px">Bill No: <strong>${billNo}</strong></div>
+          <div style="font-size:12px">Date: ${escapeHtml(date)}</div>
+          <div class="line"></div>
+          <div style="font-weight:700">Items</div>
+          ${itemsHtml}
+          <div class="line"></div>
+          <div style="display:flex;justify-content:space-between">Subtotal <span>₹${subtotal.toFixed(2)}</span></div>
+          <div style="display:flex;justify-content:space-between">Discount <span>₹${discount.toFixed(2)}</span></div>
+          ${gstHtml}
+          <div class="line"></div>
+          <div style="display:flex;justify-content:space-between;font-weight:700">Total <span>₹${total.toFixed(2)}</span></div>
+          <div style="display:flex;justify-content:space-between">Paid <span>₹${paid.toFixed(2)}</span></div>
+          <div style="display:flex;justify-content:space-between">${paid>=total?'Change':'Balance'} <span>₹${(paid>=total?change:balance).toFixed(2)}</span></div>
+          <div class="line"></div>
+          <div style="text-align:center;margin-top:8px">Thank you for your business!</div>
+        </div>
+      </body></html>`;
+
+    // print via iframe
+    try {
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      document.body.appendChild(iframe);
+      const doc = iframe.contentDocument || iframe.contentWindow.document;
+      doc.open(); doc.write(html); doc.close();
+      setTimeout(() => {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+        setTimeout(()=> document.body.removeChild(iframe), 700);
+      }, 600);
+    } catch(err){
+      alert('Print failed: ' + (err.message || err));
+    }
+  }
+
+  // ---------- WhatsApp share ----------
+  function shareWhatsApp(){
+    if(!cart.length) return alert('Cart empty');
+    try { settings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'); } catch(e){}
+    const s = settings || {};
+    const billNo = $('billNo') ? $('billNo').innerText : '';
+    const date = new Date().toLocaleString();
+    const custName = $('custName') ? $('custName').value.trim() : '-';
+    const custMobile = $('custMobile') ? $('custMobile').value.trim() : '';
+    if(!custMobile) return alert('Please enter a valid customer mobile number.');
+
+    const subtotal = cart.reduce((sum, item)=> sum + (item.qty * item.rate), 0);
+    const discount = Number($('discount') ? $('discount').value : 0) || 0;
+    const gstEnabled = $('gstToggle') ? $('gstToggle').checked : false;
+    const gstPercent = Number($('gstPercent') ? $('gstPercent').value : 0) || 0;
+    const gstInclusive = $('gstInclusiveToggle') ? $('gstInclusiveToggle').checked : false;
+    const baseAfterDiscount = Math.max(0, subtotal - discount);
+
+    let gstAmount = 0, taxable = 0, total = 0;
+    if(gstEnabled && gstPercent > 0){
+      if(gstInclusive){ taxable = baseAfterDiscount / (1 + gstPercent/100); gstAmount = baseAfterDiscount - taxable; total = baseAfterDiscount; }
+      else { taxable = baseAfterDiscount; gstAmount = taxable * (gstPercent/100); total = taxable + gstAmount; }
+    } else { taxable = baseAfterDiscount; total = taxable; }
+
+    const paid = Number($('paid') ? $('paid').value : 0) || 0;
+    const balance = (paid >= total ? paid - total : total - paid);
+
+    let msg = `*${s.companyName || 'Pandian Tech Service'}*%0A` +
+      `Bill No: ${billNo}%0ADate: ${date}%0A` +
+      `Customer: ${custName} (${custMobile})%0A%0A`;
+
+    msg += `🧾 *Items*%0A`;
+    cart.forEach(it => {
+      msg += `• ${it.name} x${it.qty} - ₹${(it.qty * it.rate).toFixed(2)}%0A`;
+    });
+
+    msg += `%0A💰 Subtotal: ₹${subtotal.toFixed(2)}%0A` +
+           `Discount: ₹${discount.toFixed(2)}%0A`;
+
+    if(gstEnabled) msg += `GST (${gstPercent}% ${gstInclusive ? '(Inclusive)' : ''}): ₹${gstAmount.toFixed(2)}%0A`;
+
+    msg += `Total: ₹${total.toFixed(2)}%0A` +
+           `Paid: ₹${paid.toFixed(2)}%0A` +
+           `${paid>=total ? 'Change' : 'Balance'}: ₹${balance.toFixed(2)}%0A%0A` +
+           `✅ Thank you for shopping with *${s.companyName || 'Pandian Tech Service'}*!`;
+
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const phone = custMobile.replace(/\D/g,'');
+    const waLink = `https://wa.me/${phone}?text=${msg}`;
+
+    if(isMobile) window.location.href = waLink;
+    else window.open(`https://web.whatsapp.com/send?phone=${phone}&text=${msg}`, '_blank');
+  }
+
+ // ---------- scanner (camera) ----------
+// Full-featured scanner: back→front→others, torch, switch, quality select,
+// beep, vibration, scan-box animation, aim-line laser, autofocus attempts.
+let html5QrCode = null;
+let activeCameraId = null;
+let cameraList = [];
+let currentCamIndex = 0;
+let streamTrack = null;          // video track for torch/focus control
+let autofocusInterval = null;    // interval id for autofocus attempts
+let lastScanTime = 0;            // to prevent duplicate multi-fires (ms)
+const SCAN_DEBOUNCE_MS = 1200;   // ignore duplicate detections within this window
+
+async function openScannerModal() {
+  try {
+    if (typeof Html5Qrcode === "undefined") {
+      alert("Scanner library not loaded.");
+      return;
+    }
+
+    // ---- Modal HTML + styles (includes scan box + aim line) ----
+    const modal = document.createElement("div");
+    modal.style = `
+      position:fixed;inset:0;
+      background:rgba(0,0,0,0.6);
+      display:flex;align-items:center;justify-content:center;
+      z-index:99999;padding:12px;
+    `;
+
+    const inner = document.createElement("div");
+    inner.className = "scanner-modal-inner";
+    inner.style = `
+      width:100%;max-width:480px;height:420px;border-radius:10px;
+      background:#fff;display:flex;flex-direction:column;gap:8px;padding:10px;
+      box-shadow:0 10px 30px rgba(0,0,0,0.4);
+    `;
+
+    // content: header, viewer, overlays, controls
+    inner.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font-weight:700">Scan Barcode</div>
+        <div style="font-size:13px;color:#666">Tip: allow camera permission</div>
+      </div>
+
+      <div style="position:relative;flex:1;display:flex;align-items:center;justify-content:center">
+        <div id="html5qr-reader" style="width:100%;height:100%;border-radius:8px;overflow:hidden;background:#000"></div>
+
+        <!-- animated scan box overlay -->
+        <div id="scanBox" style="
+          position:absolute; width:72%; height:50%;
+          border-radius:10px; pointer-events:none;
+          box-shadow: inset 0 0 0 2px rgba(255,255,255,0.12);
+          border:2px solid rgba(255,255,255,0.16);
+          backdrop-filter: blur(2px);
+          display:block;
+        ">
+          <div style="position:absolute;inset:0">
+            <div style="position:absolute;left:6px;top:6px;width:10px;height:10px;border-top:3px solid #4ade80;border-left:3px solid #4ade80;border-top-left-radius:2px"></div>
+            <div style="position:absolute;right:6px;top:6px;width:10px;height:10px;border-top:3px solid #4ade80;border-right:3px solid #4ade80;border-top-right-radius:2px"></div>
+            <div style="position:absolute;left:6px;bottom:6px;width:10px;height:10px;border-bottom:3px solid #4ade80;border-left:3px solid #4ade80;border-bottom-left-radius:2px"></div>
+            <div style="position:absolute;right:6px;bottom:6px;width:10px;height:10px;border-bottom:3px solid #4ade80;border-right:3px solid #4ade80;border-bottom-right-radius:2px"></div>
+          </div>
+
+          <!-- aim-line laser (animated) -->
+          <div id="aimLine" style="
+            position:absolute;left:4%;right:4%;
+            height:2px;top:25%;background:linear-gradient(90deg, rgba(255,0,0,0) 0%, rgba(255,0,0,0.75) 50%, rgba(255,0,0,0) 100%);
+            transform:translateY(0);opacity:0.9;
+          "></div>
+        </div>
+      </div>
+
+      <!-- controls -->
+      <div style="display:flex;gap:8px;align-items:center">
+        <select id="qualitySel" style="padding:8px;border-radius:6px;border:1px solid #ddd">
+          <option value="auto">Quality: Auto</option>
+          <option value="720">720p</option>
+          <option value="1080">1080p</option>
+        </select>
+        <button id="switchCam" style="padding:8px 12px;border-radius:6px;border:1px solid #ddd;background:#fff">Switch Camera</button>
+        <button id="torchToggle" style="padding:8px 12px;border-radius:6px;border:1px solid #ddd;background:#fff">Torch</button>
+        <button id="closeScan" style="margin-left:auto;padding:8px 12px;background:#111827;color:#fff;border:none;border-radius:6px">Close</button>
+      </div>
+    `;
+
+    modal.appendChild(inner);
+    document.body.appendChild(modal);
+
+    // instantiate scanner
+    html5QrCode = new Html5Qrcode("html5qr-reader");
+
+    // ---- get cameras ----
+    cameraList = await Html5Qrcode.getCameras();
+    if (!cameraList || !cameraList.length) {
+      alert("No camera found. Please allow camera permission.");
+      document.body.removeChild(modal);
+      return;
+    }
+
+    // sort: back -> front -> others
+    cameraList = prioritizeCameras(cameraList);
+
+    currentCamIndex = 0;
+
+    // get quality selection
+    const qualitySel = inner.querySelector("#qualitySel");
+    let selectedQuality = qualitySel.value;
+
+    // start first camera with selectedQuality
+    await startCameraWithQuality(cameraList[currentCamIndex].id, selectedQuality);
+
+    // ---- animate aimLine ----
+    const aimLine = inner.querySelector("#aimLine");
+    let aimPos = 0, aimDir = 1;
+    const aimAnim = setInterval(() => {
+      aimPos += 1.6 * aimDir;
+      if (aimPos > 70) aimDir = -1;
+      if (aimPos < 3) aimDir = 1;
+      if (aimLine) aimLine.style.top = (25 + aimPos * 0.5) + "%";
+    }, 18);
+
+    // ---- switch camera handler ----
+    inner.querySelector("#switchCam").addEventListener("click", async () => {
+      try {
+        await stopScannerQuiet();
+      } catch (e) {}
+      currentCamIndex = (currentCamIndex + 1) % cameraList.length;
+      selectedQuality = qualitySel.value;
+      await startCameraWithQuality(cameraList[currentCamIndex].id, selectedQuality);
+    });
+
+    // ---- quality selector change ----
+    qualitySel.addEventListener("change", async () => {
+      selectedQuality = qualitySel.value;
+      try { await stopScannerQuiet(); } catch (e) {}
+      await startCameraWithQuality(cameraList[currentCamIndex].id, selectedQuality);
+    });
+
+    // ---- torch toggle ----
+    let torchOn = false;
+    inner.querySelector("#torchToggle").addEventListener("click", async () => {
+      if (!streamTrack) return alert("Torch not supported on this camera.");
+      const caps = streamTrack.getCapabilities();
+      if (!caps || !caps.torch) return alert("Torch not supported.");
+      try {
+        torchOn = !torchOn;
+        await streamTrack.applyConstraints({ advanced: [{ torch: torchOn }] });
+      } catch (e) {
+        // some browsers might throw — inform user
+        alert("Torch failed: " + (e && e.message ? e.message : e));
+      }
+    });
+
+    // ---- close handler ----
+    inner.querySelector("#closeScan").addEventListener("click", async () => {
+      try { clearInterval(aimAnim); } catch(e){}
+      await closeScanner(modal);
+    });
+
+  } catch (err) {
+    alert("Camera error: " + (err && err.message ? err.message : err));
+  }
+}
+
+// ----------------- helpers -----------------
+
+function prioritizeCameras(list) {
+  // prefer labels that include 'back' or 'rear', then 'front', then others
+  const back = list.filter(c => (c.label || "").toLowerCase().includes("back") || (c.label || "").toLowerCase().includes("rear"));
+  const front = list.filter(c => (c.label || "").toLowerCase().includes("front"));
+  const others = list.filter(c => !back.includes(c) && !front.includes(c));
+  // if labels are empty, try to put the first device as back (keep original order)
+  return [...back, ...front, ...others];
+}
+
+// Utility: attempt auto-focus configuration periodically (best-effort)
+async function attemptAutoFocus(track) {
+  if (!track || typeof track.getCapabilities !== "function") return null;
+  try {
+    const capabilities = track.getCapabilities();
+    // prefer setting continuous focus mode if available
+    if (capabilities.focusMode && capabilities.focusMode.includes("continuous")) {
+      await track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
+      return true;
+    }
+    // if focusDistance or pointsOfInterest exist, try to nudge focus (best-effort)
+    if (capabilities.focusDistance) {
+      // try three probe values (best-effort)
+      await track.applyConstraints({ advanced: [{ focusMode: "manual", focusDistance: capabilities.focusDistance.min || 0 }] }).catch(()=>{});
+      return true;
+    }
+  } catch (e) {
+    // ignore — not widely supported
+  }
+  return null;
+}
+
+// start camera with quality option (auto / 720 / 1080)
+async function startCameraWithQuality(camId, qualityOpt = "auto") {
+  activeCameraId = camId;
+  // determine ideal height
+  let idealHeight = undefined;
+  if (qualityOpt === "720") idealHeight = 720;
+  else if (qualityOpt === "1080") idealHeight = 1080;
+
+  // build config passed to html5QrCode.start
+  const config = {
+    fps: 12,
+    qrbox: { width: 280, height: 160 }
+  };
+
+  // if quality chosen, provide videoConstraints for resolution
+  if (idealHeight) {
+    config.videoConstraints = { height: { ideal: idealHeight }, width: { ideal: Math.round(idealHeight * (16/9)) } };
+  } else {
+    // auto — let device choose (but request environment facing if label suggests)
+    config.videoConstraints = {};
+  }
+
+  // attempt to start
+  await html5QrCode.start(
+    { deviceId: { exact: camId } },
+    config,
+    // onSuccess (continuous scanning)
+    (decodedText) => {
+      const now = Date.now();
+      if (now - lastScanTime < SCAN_DEBOUNCE_MS) return; // debounce duplicates
+      lastScanTime = now;
+
+      // beep + vibrate
+      try { playBeep(950, 110); } catch(e){}
+      try { if (navigator.vibrate) navigator.vibrate(120); } catch(e){}
+
+      const code = decodedText.trim();
+      const prod = products.find(p => (p.barcode || "").toString() === code.toString());
+      if (prod) {
+        // add to cart WITHOUT closing scanner
+        addToCart(prod.id);
+      } else {
+        // product not found — brief alert (non-blocking)
+        setTimeout(()=>alert("Product not found: " + code), 80);
+      }
+    },
+    // onError (ignored)
+    (errorMsg) => {}
+  );
+
+  // obtain video track for torch & autofocus if possible
+  try {
+    const video = document.querySelector("#html5qr-reader video");
+    if (video && video.srcObject && video.srcObject.getVideoTracks().length) {
+      streamTrack = video.srcObject.getVideoTracks()[0];
+      // clear any previous autofocus interval
+      try { if (autofocusInterval) clearInterval(autofocusInterval); } catch(e){}
+      // attempt autofocus immediately and then every 2s (best-effort)
+      attemptAutoFocus(streamTrack).catch(()=>{});
+      autofocusInterval = setInterval(() => {
+        attemptAutoFocus(streamTrack).catch(()=>{});
+      }, 2000);
+    } else {
+      streamTrack = null;
+    }
+  } catch (e) {
+    streamTrack = null;
+  }
+}
+
+// quiet stop (no alerts), used before restart
+async function stopScannerQuiet() {
+  try {
+    if (autofocusInterval) { clearInterval(autofocusInterval); autofocusInterval = null; }
+    if (html5QrCode) {
+      await html5QrCode.stop();
+      html5QrCode.clear();
+    }
+    // attempt to stop tracks if any
+    const video = document.querySelector("#html5qr-reader video");
+    if (video && video.srcObject) {
+      const tracks = video.srcObject.getTracks() || [];
+      tracks.forEach(t => {
+        try { t.stop(); } catch(e) {}
+      });
+      try { video.srcObject = null; } catch(e){}
+    }
+  } catch (e) {
+    // ignore
+  }
+}
+
+// close & cleanup
+async function closeScanner(modalEl) {
+  try {
+    if (autofocusInterval) { clearInterval(autofocusInterval); autofocusInterval = null; }
+    if (html5QrCode) {
+      await html5QrCode.stop();
+      html5QrCode.clear();
+      html5QrCode = null;
+    }
+    // stop media tracks if present
+    const video = document.querySelector("#html5qr-reader video");
+    if (video && video.srcObject) {
+      const tracks = video.srcObject.getTracks() || [];
+      tracks.forEach(t => {
+        try { t.stop(); } catch(e) {}
+      });
+      try { video.srcObject = null; } catch(e){}
+    }
+  } catch (e) {
+    // ignore
+  }
+
+  try {
+    if (modalEl && modalEl.parentNode) modalEl.parentNode.removeChild(modalEl);
+  } catch (e) {}
+}
+
+// ---- beep via WebAudio (simple brief beep) ----
+function playBeep(freq = 880, duration = 120) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = "sine";
+    o.frequency.value = freq;
+    g.gain.value = 0.0015; // volume - small
+    o.connect(g);
+    g.connect(ctx.destination);
+    o.start();
+    g.gain.exponentialRampToValueAtTime(0.12, ctx.currentTime + 0.02);
+    setTimeout(() => {
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.02);
+      try { o.stop(); } catch(e){}
+      try { ctx.close(); } catch(e){}
+    }, duration);
+  } catch (e) {
+    // fallback: no action if audio unavailable
+  }
+}
+
+  // ---------- utilities ----------
+  function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+  // ---------- sync: storage listener ----------
+  function attachStorageListener(){
+    window.addEventListener('storage', (e) => {
+      try {
+        if(!e.key) return;
+        // settings changed
+        if(e.key === SETTINGS_KEY){
+          try {
+            const newSettings = JSON.parse(e.newValue || '{}');
+            settings = newSettings;
+            populatePayModes();
+            updateBillHeader();
+            console.log('⚙️ Settings synced from other page');
+          } catch(err){}
+        }
+        // products changed (entire list replaced)
+        if(e.key === PRODUCTS_KEY){
+          try {
+            products = JSON.parse(e.newValue || '[]');
+            renderProducts();
+            refreshCartUI();
+            console.log('📦 Products updated from other page');
+          } catch(err){}
+        }
+        // customers changed
+        if(e.key === CUSTOMERS_KEY){
+          try {
+            customers = JSON.parse(e.newValue || '[]');
+            console.log('👥 Customers updated from other page');
+          } catch(err){}
+        }
+        // bills changed
+        if(e.key === BILLS_KEY){
+          try {
+            bills = JSON.parse(e.newValue || '[]');
+            updateBillHeader();
+            console.log('🧾 Bills updated from other page');
+          } catch(err){}
+        }
+        // stock sync event (timestamp)
+        if(e.key === STOCK_SYNC_KEY){
+          try {
+            products = JSON.parse(localStorage.getItem(PRODUCTS_KEY) || '[]');
+            renderProducts();
+            refreshCartUI();
+            console.log('🔄 Stock sync event received');
+          } catch(err){}
+        }
+      } catch(err) {
+        console.warn('storage listener error', err);
+      }
+    });
+  }
+
+  // ---------- focus refresh ----------
+  function attachFocusRefresh(){
+    window.addEventListener('focus', () => {
+      try {
+        const newSettings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+        const prods = JSON.parse(localStorage.getItem(PRODUCTS_KEY) || '[]');
+        const custs = JSON.parse(localStorage.getItem(CUSTOMERS_KEY) || '[]');
+        const b = JSON.parse(localStorage.getItem(BILLS_KEY) || '[]');
+        // apply if changed
+        if(JSON.stringify(newSettings) !== JSON.stringify(settings)){
+          settings = newSettings; populatePayModes(); updateBillHeader();
+          console.log('⚙️ Settings refreshed on focus');
+        }
+        if(JSON.stringify(prods) !== JSON.stringify(products)){
+          products = prods; renderProducts(); refreshCartUI(); console.log('📦 Products refreshed on focus');
+        }
+        if(JSON.stringify(custs) !== JSON.stringify(customers)){
+          customers = custs; console.log('👥 Customers refreshed on focus');
+        }
+        if(JSON.stringify(b) !== JSON.stringify(bills)){
+          bills = b; updateBillHeader(); console.log('🧾 Bills refreshed on focus');
+        }
+      } catch(e){}
+    });
+  }
+
+  // ---------- polling for settings (safety net) ----------
+  let settingsPollLast = JSON.stringify(settings || {});
+  function startPollingSettings(){
+    setInterval(() => {
+      try {
+        const sNew = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+        const sNewStr = JSON.stringify(sNew || {});
+        if(sNewStr !== settingsPollLast){
+          settingsPollLast = sNewStr;
+          settings = sNew;
+          populatePayModes();
+          updateBillHeader();
+          console.log('⚙️ Settings auto-poll synced');
+        }
+      } catch(e){}
+    }, 3000); // every 3 seconds
+  }
+
+  // ---------- autosave ----------
+  const autosaveToast = $('autosaveToast');
+  function showAutosave(msg='Saved'){
+    if(!autosaveToast) return;
+    autosaveToast.innerText = msg;
+    autosaveToast.style.display = 'block';
+    autosaveToast.style.opacity = '1';
+    setTimeout(()=> {
+      autosaveToast.style.transition = 'opacity 300ms';
+      autosaveToast.style.opacity = '0';
+      setTimeout(()=> { autosaveToast.style.display = 'none'; autosaveToast.style.transition = ''; }, 350);
+    }, 900);
+  }
+
+  function autosaveAll(){
+    try {
+      localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products || []));
+      localStorage.setItem(BILLS_KEY, JSON.stringify(bills || []));
+      localStorage.setItem(CUSTOMERS_KEY, JSON.stringify(customers || []));
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings || {}));
+      // lightweight backup (best-effort)
+      try { localStorage.setItem('backup_' + (new Date().toISOString().replace(/[:.]/g,'-')), JSON.stringify({ products, bills, customers, settings })); } catch(e){}
+      showAutosave('Autosaved');
+    } catch(e){ console.warn('Autosave failed', e); }
+  }
+  setInterval(autosaveAll, 60 * 1000); // every 60s
+  window.addEventListener('beforeunload', autosaveAll);
+
+  // ---------- expose debug helpers ----------
+  window.PandianBilling = { cart, products, bills, customers, computeTotals, refreshCartUI, renderProducts, autosaveAll };
+
+  // ---------- default sample data if empty ----------
+  if(!products.length){
+    products.push({id:'prod_1',name:'Samsung Charger',category:'Mobile Accessories',price:250,purchase:180,stock:12,barcode:'PTS0001'});
+    products.push({id:'prod_2',name:'HP Laptop Battery',category:'Laptop Parts',price:3200,purchase:2600,stock:5,barcode:'PTS0002'});
+    try { localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products)); } catch(e){}
+  }
+
+  // ---------- start ----------
+  init();
+
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Settings — Pandian Tech Service</title>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg1: #2b004f;
+  --bg2: #000;
+  --card: #fff;
+  --accent: #e11d48;
+  --text-dark: #111;
+  --text-light: #fff;
+  --muted: #666;
+  --radius: 14px;
+  --shadow: 0 6px 18px rgba(0,0,0,0.2);
+  --transition: all 0.25s ease;
+}
+* { box-sizing: border-box; }
+body {
+  font-family: 'Quicksand', sans-serif;
+  background: linear-gradient(135deg, var(--bg1), var(--bg2));
+  color: var(--text-light);
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+/* Main Container */
+.wrap {
+  max-width: 960px;
+  margin: 40px auto;
+  padding: 20px;
+  animation: fadeIn 0.8s ease;
+}
+@keyframes fadeIn { from {opacity:0; transform:translateY(10px);} to {opacity:1; transform:translateY(0);} }
+
+/* Head Section */
+.page-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.logo-mini {
+  width: 58px; height: 58px;
+  border-radius: var(--radius);
+  background: rgba(255,255,255,0.1);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 22px; color: var(--accent);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+}
+h1 { margin: 0; font-size: 22px; font-weight: 700; }
+p.lead { margin: 4px 0 0; font-size: 14px; color: #ccc; }
+
+/* Card */
+.card {
+  background: var(--card);
+  color: var(--text-dark);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow);
+  animation: fadeUp 0.5s ease;
+}
+@keyframes fadeUp { from {opacity:0; transform:translateY(10px);} to {opacity:1; transform:translateY(0);} }
+
+.grid { display: grid; grid-template-columns: 1fr 340px; gap: 18px; }
+@media(max-width:900px) { .grid { grid-template-columns: 1fr; } .right-col { order: 2; } }
+
+label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px; }
+input, textarea, select {
+  width: 100%; padding: 10px 12px;
+  border-radius: 10px; border: 1px solid #ddd;
+  background: #f8f8f8; font-family: inherit; font-size: 14px;
+  transition: var(--transition);
+}
+input:focus, textarea:focus, select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(225,29,72,0.15);
+  outline: none;
+}
+textarea { min-height: 80px; resize: vertical; }
+
+.row { display: flex; gap: 12px; flex-wrap: wrap; }
+.row .col { flex: 1; }
+
+.actions {
+  display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap;
+}
+button {
+  border: 0; border-radius: 10px; cursor: pointer;
+  padding: 10px 14px; font-weight: 600; font-family: inherit;
+  transition: var(--transition);
+}
+button:hover { transform: translateY(-2px); }
+button:active { transform: scale(0.98); }
+button.primary { background: var(--accent); color: #fff; box-shadow: 0 4px 10px rgba(225,29,72,0.3); }
+button.ghost { background: #f2f2f2; color: #333; border: 1px solid #ddd; }
+button.ghost:hover { background: #fff; }
+
+/* Preview */
+.preview {
+  background: #fafafa;
+  border: 1px solid #eee;
+  border-radius: var(--radius);
+  padding: 16px;
+  color: var(--text-dark);
+}
+.preview strong { display: block; font-size: 18px; color: var(--accent); }
+.preview table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 14px; color: #444; }
+.preview th, .preview td { padding: 6px 0; border-bottom: 1px solid #eee; text-align: left; }
+.preview th { width: 50%; color: #777; }
+
+/* Service Settings Block */
+.service-block {
+  background: #fff;
+  padding: 14px;
+  border-radius: var(--radius);
+  margin-top: 16px;
+  box-shadow: var(--shadow);
+}
+.service-block h4 { margin: 0 0 8px 0; color: var(--accent); }
+.service-block p { margin: 0 0 12px 0; color: #555; font-size: 13px; }
+
+footer.note { text-align: center; margin-top: 20px; font-size: 13px; color: #aaa; }
+
+@media(max-width:500px){
+  .logo-mini{width:50px;height:50px;font-size:18px;}
+  h1{font-size:18px;}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="page-head">
+    <div class="logo-mini">PTS</div>
+    <div>
+      <h1>Settings — Pandian Tech Service</h1>
+      <p class="lead">Configure company details, print types, and defaults.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="grid">
+      <div>
+        <h3>Company Information</h3>
+        <div class="field"><label>Company Name</label><input id="companyName" type="text" placeholder="Pandian Tech Service"></div>
+        <div class="row">
+          <div class="col field"><label>Phone Number</label><input id="companyPhone" type="text" placeholder="7200171230"></div>
+          <div class="col field"><label>Alternate Phone</label><input id="companyAltPhone" type="text" placeholder="Optional"></div>
+        </div>
+        <div class="field"><label>Address</label><textarea id="companyAddress" placeholder="No.10, Raja Street, Tirunelveli"></textarea></div>
+        <div class="row">
+          <div class="col field"><label>City</label><input id="companyCity" type="text" placeholder="Tirunelveli"></div>
+          <div class="col field"><label>Pincode</label><input id="companyPincode" type="text" placeholder="627001"></div>
+        </div>
+        <div class="row">
+          <div class="col field"><label>GST Number</label><input id="companyGST" type="text" placeholder="GSTIN (optional)"></div>
+          <div class="col field"><label>Email</label><input id="companyEmail" type="email" placeholder="email@example.com"></div>
+        </div>
+
+        <h3>Printer & Defaults</h3>
+        <div class="row field">
+          <div class="col"><label>Default Print Type</label>
+            <select id="printType">
+              <option value="A4">A4 (Full page)</option>
+              <option value="THERMAL_58">Thermal - 58mm</option>
+              <option value="THERMAL_80">Thermal - 80mm</option>
+            </select>
+          </div>
+          <div class="col field" style="max-width:150px">
+            <label>Starting Bill No</label><input id="startBillNo" type="text" placeholder="300">
+          </div>
+          <div class="col field" style="max-width:150px">
+            <label>Starting Job No</label><input id="startJobNo" type="text" placeholder="500">
+          </div>
+        </div>
+
+        <div class="field"><label>Default Warranty Options</label><input id="warrantyDefaults" type="text" placeholder="1,3,6,12"></div>
+        <div class="field"><label>Default Payment Modes</label><input id="paymentModes" type="text" placeholder="Cash,UPI,Card,Bank Transfer,Credit"></div>
+
+        <div class="actions">
+          <button id="saveBtn" class="primary">Save Settings</button>
+          <button id="resetBtn" class="ghost">Reset</button>
+          <div style="flex:1"></div>
+          <button id="exportBtn" class="ghost">Export JSON</button>
+        </div>
+      </div>
+
+      <div class="right-col">
+        <div class="preview">
+          <strong id="previewName">Pandian Tech Service</strong>
+          <table>
+            <tr><th>Print Type</th><td id="sPrintType">A4</td></tr>
+            <tr><th>Start Bill No</th><td id="sStartBill">300</td></tr>
+            <tr><th>Start Job No</th><td id="sStartJob">500</td></tr>
+            <tr><th>Warranty</th><td id="sWarranty">1,3,6,12</td></tr>
+            <tr><th>Payment Modes</th><td id="sPaymentModes">Cash, UPI, Card</td></tr>
+          </table>
+        </div>
+        <div class="service-block">
+          <h4>Service Settings</h4>
+          <p>Manage service status stages used in Service Monitor.</p>
+          <button onclick="window.location.href='service-status-settings.html'" class="primary" style="width:100%">⚙️ Open Service Status Settings</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="note">All settings are saved locally and synced with Billing, Service, and Monitor pages.</footer>
+</div>
+
+<script>
+(function(){
+  const el = id => document.getElementById(id);
+  const STORAGE_KEY = 'companyDetails';
+  const defaults = {
+    companyName: 'Pandian Tech Service',
+    companyPhone: '7200171230',
+    companyAltPhone: '',
+    companyAddress: 'No.10, Raja Street, Tirunelveli',
+    companyCity: 'Tirunelveli',
+    companyPincode: '627001',
+    companyGST: '',
+    companyEmail: '',
+    printType: 'A4',
+    startBillNo: '300',
+    startJobNo: '500',
+    warrantyDefaults: '1,3,6,12',
+    paymentModes: 'Cash,UPI,Card,Bank Transfer,Credit'
+  };
+
+  function load() {
+    let cfg = JSON.parse(localStorage.getItem(STORAGE_KEY) || JSON.stringify(defaults));
+    Object.keys(defaults).forEach(k => { if (el(k)) el(k).value = cfg[k] || ''; });
+    updatePreview(cfg);
+  }
+
+  function save() {
+    const cfg = {};
+    Object.keys(defaults).forEach(k => cfg[k] = el(k)?.value.trim() || '');
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
+    updatePreview(cfg);
+    alert('Settings saved successfully!');
+  }
+
+  function reset() {
+    if (confirm('Reset settings to defaults?')) {
+      localStorage.removeItem(STORAGE_KEY);
+      load();
+      alert('Reset complete.');
+    }
+  }
+
+  function exportSettings() {
+    const data = localStorage.getItem(STORAGE_KEY);
+    const blob = new Blob([data], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'company-settings.json';
+    a.click();
+  }
+
+  function updatePreview(cfg) {
+    el('previewName').textContent = cfg.companyName || 'Pandian Tech Service';
+    el('sPrintType').textContent = cfg.printType || 'A4';
+    el('sStartBill').textContent = cfg.startBillNo || '300';
+    el('sStartJob').textContent = cfg.startJobNo || '500';
+    el('sWarranty').textContent = cfg.warrantyDefaults || '1,3,6,12';
+    el('sPaymentModes').textContent = cfg.paymentModes.replace(/,/g, ', ');
+  }
+
+  el('saveBtn').onclick = save;
+  el('resetBtn').onclick = reset;
+  el('exportBtn').onclick = exportSettings;
+
+  window.addEventListener('storage', e => { if (e.key === STORAGE_KEY) load(); });
+  load();
+})();
+</script>
+
+</body>
+</html>

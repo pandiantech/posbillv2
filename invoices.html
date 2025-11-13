@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Invoices — Pandian Tech Service</title>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f4f4f4;
+  --card:#fff;
+  --text:#111;
+  --muted:#666;
+  --accent:#111827;
+  --accent-light:#2563eb;
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Quicksand',sans-serif;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+}
+.wrap{
+  margin:20px auto;
+  width:100%;
+  max-width:1100px;
+  padding:0 14px;
+}
+
+/* Filter bar */
+.filter-bar{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  padding:10px 12px;
+  background:#fff;
+  border-radius:10px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.05);
+  margin-bottom:16px;
+}
+.filter-bar input,.filter-bar button{
+  padding:8px 10px;
+  border-radius:8px;
+  border:1px solid #ccc;
+  font-size:14px;
+}
+.filter-bar input{flex:1;min-width:150px;}
+.filter-bar button{
+  background:var(--accent);
+  color:#fff;
+  border:0;
+  cursor:pointer;
+  transition:.25s;
+}
+.filter-bar button:hover{background:#000;}
+
+/* Invoices */
+.invoice-container{display:flex;flex-direction:column;gap:12px;}
+.invoice-card{
+  background:var(--card);
+  padding:14px;
+  border-radius:12px;
+  box-shadow:0 3px 12px rgba(0,0,0,0.08);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  transition:.25s;
+}
+.invoice-card:hover{
+  transform:translateY(-2px);
+  box-shadow:0 6px 18px rgba(0,0,0,0.1);
+}
+.invoice-info{font-size:14px;line-height:1.4;}
+.invoice-info b{color:var(--accent);}
+.invoice-actions{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+.invoice-actions button{
+  border:0;
+  padding:7px 12px;
+  border-radius:8px;
+  font-weight:600;
+  color:#fff;
+  cursor:pointer;
+  font-size:13px;
+}
+.btn-view{background:#111827;}
+.btn-print{background:#2563eb;}
+.btn-share{background:#059669;}
+
+/* Modal */
+.modal-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.55);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  opacity:0;
+  pointer-events:none;
+  transition:.3s;
+  z-index:1000;
+}
+.modal-overlay.active{opacity:1;pointer-events:auto;}
+.modal{
+  background:#fff;
+  padding:18px;
+  border-radius:12px;
+  width:min(500px,95%);
+  max-height:85vh;
+  overflow-y:auto;
+  box-shadow:0 8px 30px rgba(0,0,0,0.3);
+  animation:slideUp .3s ease;
+}
+@keyframes slideUp{from{transform:translateY(40px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.modal h2{text-align:center;font-size:18px;margin-bottom:8px;}
+.modal .line{border-top:1px dashed #aaa;margin:8px 0;}
+.modal-buttons{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  justify-content:center;
+  margin-top:10px;
+}
+.modal-buttons button{
+  border:0;
+  padding:8px 14px;
+  border-radius:8px;
+  font-weight:600;
+  color:#fff;
+  cursor:pointer;
+}
+.btn-close{background:#ef4444;}
+.btn-pdf{background:#7c3aed;}
+.btn-print{background:#2563eb;}
+.btn-share{background:#059669;}
+@media(max-width:600px){
+  .invoice-card{flex-direction:column;align-items:flex-start;}
+  .invoice-actions{margin-top:8px;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 style="font-size:20px;margin-bottom:12px;">Invoices — Pandian Tech Service</h1>
+  <div class="filter-bar">
+    <input id="searchInput" placeholder="Search by name / mobile / number">
+    <input id="dateFilter" type="date">
+    <button id="clearFilter">Clear</button>
+  </div>
+
+  <div id="invoiceContainer" class="invoice-container">
+    <p style="text-align:center;color:#777;">Loading invoices...</p>
+  </div>
+</div>
+
+<!-- Modal -->
+<div id="modalOverlay" class="modal-overlay">
+  <div class="modal">
+    <h2 id="modalTitle"></h2>
+    <div id="modalContent"></div>
+    <div class="modal-buttons">
+      <button class="btn-print">Print</button>
+      <button class="btn-share">Share</button>
+      <button class="btn-pdf">PDF</button>
+      <button class="btn-close">Close</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+(() => {
+  const $=id=>document.getElementById(id);
+  const load=(k,f=[])=>JSON.parse(localStorage.getItem(k)||JSON.stringify(f));
+  const jobs=load('jobs'), bills=load('bills');
+  const company=JSON.parse(localStorage.getItem('companyDetails')||'{}');
+  const all=[...jobs.map(j=>({...j,type:'Service',total:j.charge})),...bills.map(b=>({...b,type:'Billing'}))]
+    .sort((a,b)=>new Date(b.dateTime)-new Date(a.dateTime));
+
+  function render(list=all){
+    const c=$('invoiceContainer');
+    c.innerHTML='';
+    if(!list.length){
+      c.innerHTML='<p style="text-align:center;color:#777;">No invoices found</p>';
+      return;
+    }
+    list.forEach(inv=>{
+      const div=document.createElement('div');
+      div.className='invoice-card';
+      div.innerHTML=`
+        <div class="invoice-info">
+          <b>${inv.type} #${inv.jobNo||inv.billNo}</b><br>
+          ${inv.customer?.name||'-'} (${inv.customer?.mobile||'-'})<br>
+          ₹${inv.total||0} | ${inv.dateTime||'-'}
+        </div>
+        <div class="invoice-actions"><button class="btn-view">View</button></div>`;
+      div.querySelector('.btn-view').onclick=()=>openModal(inv);
+      c.appendChild(div);
+    });
+  }
+  render();
+
+  // ✅ Fixed search filter
+  $('searchInput').oninput=e=>{
+    const q=e.target.value.toLowerCase();
+    render(all.filter(i=>
+      i.customer?.name?.toLowerCase().includes(q)||
+      i.customer?.mobile?.includes(q)||
+      (i.jobNo||i.billNo||'').toString().includes(q)
+    ));
+  };
+
+  // ✅ Fixed date filter — matches even if invoice date has time or different format
+  $('dateFilter').onchange=e=>{
+    const selected=e.target.value;
+    if(!selected){ render(); return; }
+
+    const dayStart=new Date(selected);
+    const dayEnd=new Date(selected);
+    dayEnd.setHours(23,59,59,999);
+
+    render(all.filter(i=>{
+      if(!i.dateTime) return false;
+      const d=new Date(i.dateTime.replace('T',' ')); // handle ISO or custom dateTime
+      return d>=dayStart && d<=dayEnd;
+    }));
+  };
+
+  $('clearFilter').onclick=()=>{
+    $('searchInput').value='';
+    $('dateFilter').value='';
+    render();
+  };
+
+  const overlay=$('modalOverlay'),
+        content=$('modalContent'),
+        title=$('modalTitle');
+  let current=null;
+
+  function formatInvoiceHTML(inv){
+    const logo=localStorage.getItem('companyLogo')||company.logo||'';
+    const addr=[company.companyAddress,company.companyCity,company.companyPincode].filter(Boolean).join(', ');
+    return `
+      <div style="text-align:center">
+        ${logo?`<img src="${logo}" style="max-height:80px;margin-bottom:6px;border-radius:8px">`:''}
+        <h2 style="margin:4px 0">${company.companyName||'Pandian Tech Service'}</h2>
+        <div style="font-size:13px;color:#555;">${addr||''}</div>
+        ${company.companyPhone?`<div style="font-size:13px;">📞 ${company.companyPhone}</div>`:''}
+        ${company.companyGST?`<div style="font-size:13px;">GSTIN: ${company.companyGST}</div>`:''}
+      </div>
+      <hr>
+      <p><b>${inv.type} #${inv.jobNo||inv.billNo}</b></p>
+      <p><b>Date:</b> ${inv.dateTime}</p>
+      <p><b>Customer:</b> ${inv.customer?.name||'-'} (${inv.customer?.mobile||'-'})</p>
+      <hr>
+      <p><b>Total:</b> ₹${inv.total||0}</p>
+      <p><b>Paid:</b> ₹${inv.paid||0}</p>
+      <p><b>Balance:</b> ₹${inv.balance||0}</p>
+      ${inv.type==='Service'?`<hr><p><b>Device:</b> ${inv.device?.brand||''} ${inv.device?.model||''}</p>
+      <p><b>Complaint:</b> ${inv.device?.complaint||'-'}</p>`:''}
+      <hr>
+      <p style="text-align:center;color:#555;font-size:13px;">Thank you for choosing ${company.companyName||'Pandian Tech Service'}!</p>`;
+  }
+
+  function openModal(inv){
+    current=inv;
+    title.innerText=`${inv.type} Invoice #${inv.jobNo||inv.billNo}`;
+    content.innerHTML=formatInvoiceHTML(inv);
+    overlay.classList.add('active');
+  }
+
+  document.querySelector('.btn-close').onclick=()=>overlay.classList.remove('active');
+  overlay.onclick=e=>{if(e.target===overlay)overlay.classList.remove('active');};
+
+  document.querySelector('.btn-pdf').onclick=()=>{
+    if(!current)return;
+    const el=document.createElement('div');
+    el.innerHTML=formatInvoiceHTML(current);
+    html2pdf().set({margin:8,filename:`${current.type}_${current.jobNo||current.billNo}.pdf`,html2canvas:{scale:2}}).from(el).save();
+  };
+
+  document.querySelector('.btn-print').onclick=()=>{
+    if(!current)return;
+    const html=`<html><head><title>Invoice</title></head><body>${formatInvoiceHTML(current)}</body></html>`;
+    const w=window.open();
+    w.document.write(html);
+    w.print();
+    w.close();
+  };
+
+  document.querySelector('.btn-share').onclick=()=>{
+    if(!current)return;
+    const msg=`*${company.companyName||'Pandian Tech Service'}*%0A🧾 *${current.type} Invoice*%0ANo: ${current.jobNo||current.billNo}%0ADate: ${current.dateTime}%0ACustomer: ${current.customer?.name||'-'} (${current.customer?.mobile||'-'})%0ATotal: ₹${current.total}%0APaid: ₹${current.paid}%0ABalance: ₹${current.balance}%0AThank you for choosing *${company.companyName||'Pandian Tech Service'}*!`;
+    window.open(`https://wa.me/${current.customer?.mobile}?text=${msg}`,'_blank');
+  };
+})();
+</script>

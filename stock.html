@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Stock Maintenance — Pandian Tech Service</title>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f5f7;--card:#fff;--muted:#8b8f95;--text:#0f1724;
+  --accent:#111827;--low:#ff4d4f;
+}
+*{box-sizing:border-box}
+body{font-family:'Quicksand',sans-serif;background:var(--bg);color:var(--text);margin:0}
+
+/* ===== Layout ===== */
+.wrap{max-width:1100px;margin:20px auto 40px;padding:18px;}
+h1{margin:0;font-size:20px}
+.lead{color:var(--muted);font-size:13px;margin-top:6px}
+.card{background:var(--card);padding:16px;border-radius:12px;box-shadow:0 6px 22px rgba(15,23,42,0.04);margin-top:16px}
+.summary{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px}
+.summary .box{flex:1 1 160px;background:#fff;border:1px solid #eee;border-radius:10px;padding:12px;text-align:center}
+.summary strong{display:block;font-size:18px}
+.alert-box{background:#fff6f6;color:var(--low);border-left:4px solid var(--low);
+  padding:10px 12px;border-radius:8px;margin-top:10px;font-weight:600;}
+
+/* ===== Table ===== */
+.table-container{overflow-x:auto;background:#fff;border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,0.05)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:10px;border-bottom:1px solid #eee;text-align:left}
+th{background:#fafafa;font-weight:700}
+td input{width:80px;border:1px solid #ddd;border-radius:6px;padding:6px;text-align:right}
+.btn-mini{background:#2563eb;color:#fff;padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer;border:0}
+.btn-mini:hover{background:#1d4ed8}
+.low-row{background:rgba(255,77,79,0.04);border-left:3px solid var(--low);}
+@media(max-width:600px){
+  table,thead,tbody,tr,td,th{display:block;}
+  tr{margin-bottom:10px;background:#fff;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.05);}
+  td{display:flex;justify-content:space-between;padding:8px 10px;}
+  td::before{content:attr(data-label);font-weight:600;color:#555;display:inline-block;width:45%;}
+  th{display:none;}
+  td input{width:40%;}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap" id="pageWrap">
+  <h1>Stock Maintenance</h1>
+  <div class="lead">Syncs automatically with Catalogue & included in Data Backup.</div>
+
+  <div id="lowAlert" class="alert-box" style="display:none;">⚠️ Low Stock Alert! Please restock critical items.</div>
+
+  <div class="card">
+    <div class="summary">
+      <div class="box"><small>Total Products</small><strong id="totalProducts">0</strong></div>
+      <div class="box"><small>Total Categories</small><strong id="totalCategories">0</strong></div>
+      <div class="box"><small>Total Purchase Value</small><strong id="totalPurchase">₹0</strong></div>
+      <div class="box"><small>Total Billing Value</small><strong id="totalBilling">₹0</strong></div>
+    </div>
+  </div>
+
+  <div class="card table-container">
+    <h3 style="margin:0 0 10px 0;">Product Inventory</h3>
+    <table id="stockTable">
+      <thead>
+        <tr>
+          <th>Category</th><th>Product</th><th>Stock</th>
+          <th>Purchase Rate (₹)</th><th>Billing Rate (₹)</th>
+          <th>Total (₹)</th><th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="stockBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const PRODUCTS_KEY='products',CATEGORIES_KEY='categories',INVENTORY_KEY='inventory';
+
+  const loadJSON=(k,f=[])=>{
+    try { return JSON.parse(localStorage.getItem(k) || JSON.stringify(f)); }
+    catch(e){ console.warn('loadJSON failed',e); return f; }
+  };
+  const saveJSON=(k,v)=> {
+    try { localStorage.setItem(k, JSON.stringify(v)); return true; }
+    catch(e){ console.error('saveJSON failed',e); return false; }
+  };
+
+  let products = loadJSON(PRODUCTS_KEY, []);
+  let categories = loadJSON(CATEGORIES_KEY, []);
+
+  function renderStock(){
+    products = loadJSON(PRODUCTS_KEY, products);
+    const body = $('stockBody');
+    body.innerHTML = '';
+    if(!products.length){
+      body.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#777;">No products found. Add in Catalogue.</td></tr>';
+      $('totalProducts').innerText = 0;
+      $('totalCategories').innerText = 0;
+      $('totalPurchase').innerText = '₹0';
+      $('totalBilling').innerText = '₹0';
+      $('lowAlert').style.display = 'none';
+      return;
+    }
+
+    let totalPurchase = 0, totalBilling = 0, lowCount = 0;
+    products.forEach((p, i) => {
+      const s = Number(p.stock || 0);
+      const pr = Number(p.purchaseRate || 0);
+      const br = Number(p.billingRate || 0);
+      totalPurchase += s * pr;
+      totalBilling += s * br;
+
+      const tr = document.createElement('tr');
+      if (s < (p.lowStockThreshold ?? 5)) { tr.classList.add('low-row'); lowCount++; }
+
+      tr.innerHTML = `
+        <td data-label="Category">${escapeHtml(p.category||'-')}</td>
+        <td data-label="Product">${escapeHtml(p.name||'')}</td>
+        <td data-label="Stock"><input type="number" id="stock_${i}" value="${s}" min="0"></td>
+        <td data-label="Purchase Rate"><input type="number" id="purchase_${i}" value="${pr}" min="0" step="0.01"></td>
+        <td data-label="Billing Rate"><input type="number" id="billing_${i}" value="${br}" min="0" step="0.01"></td>
+        <td data-label="Total">₹${(s*br).toFixed(2)}</td>
+        <td data-label="Action"><button class="btn-mini" data-row="${i}">💾</button></td>
+      `;
+      body.appendChild(tr);
+    });
+
+    $('totalProducts').innerText = products.length;
+    $('totalCategories').innerText = new Set(products.map(p => p.category)).size;
+    $('totalPurchase').innerText = '₹' + totalPurchase.toFixed(2);
+    $('totalBilling').innerText = '₹' + totalBilling.toFixed(2);
+    saveJSON(INVENTORY_KEY, { updatedAt: new Date().toLocaleString(), products });
+    $('lowAlert').style.display = lowCount > 0 ? 'block' : 'none';
+
+    body.querySelectorAll('button[data-row]').forEach(btn => {
+      btn.removeEventListener('click', onSaveRow);
+      btn.addEventListener('click', onSaveRow);
+    });
+  }
+
+  function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]); }
+
+  function onSaveRow(e){
+    const i = Number(e.currentTarget.dataset.row);
+    const stockEl = $(`stock_${i}`);
+    const prEl = $(`purchase_${i}`);
+    const brEl = $(`billing_${i}`);
+    if(!stockEl || !prEl || !brEl) return alert('Row inputs missing');
+
+    const s = Number(stockEl.value) || 0;
+    const pr = Number(prEl.value) || 0;
+    const br = Number(brEl.value) || 0;
+
+    products = loadJSON(PRODUCTS_KEY, products);
+    if(!products[i]) return alert('Product missing (index mismatch).');
+
+    products[i].stock = s;
+    products[i].purchaseRate = pr;
+    products[i].billingRate = br;
+
+    const ok = saveJSON(PRODUCTS_KEY, products);
+    if(!ok){
+      try {
+        localStorage.removeItem(INVENTORY_KEY);
+        saveJSON(PRODUCTS_KEY, products);
+      } catch(e){}
+    }
+    renderStock();
+  }
+
+  // Real-time sync between pages
+  let lastProductsSnapshot = JSON.stringify(products);
+  function pollSync(){
+    const latest = loadJSON(PRODUCTS_KEY, []);
+    const latestSnap = JSON.stringify(latest);
+    if(latestSnap !== lastProductsSnapshot){
+      products = latest;
+      lastProductsSnapshot = latestSnap;
+      renderStock();
+    }
+  }
+  const pollInterval = setInterval(pollSync, 2500);
+
+  window.addEventListener('storage', (e) => {
+    if([PRODUCTS_KEY, CATEGORIES_KEY].includes(e.key)){
+      products = loadJSON(PRODUCTS_KEY, products);
+      categories = loadJSON(CATEGORIES_KEY, categories);
+      lastProductsSnapshot = JSON.stringify(products);
+      renderStock();
+    }
+  });
+
+  renderStock();
+})();
+</script>
+</body>
+</html>

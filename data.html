@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Data Manager — Pandian Tech Service</title>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --bg:#f8fafc;
+  --card:#fff;
+  --text:#111827;
+  --muted:#6b7280;
+  --accent:#2563eb;
+  --danger:#dc2626;
+}
+*{box-sizing:border-box;}
+body{
+  font-family:'Quicksand',sans-serif;
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+}
+.wrap{
+  max-width:1100px;
+  margin:20px auto 40px; /* top margin preserved */
+  padding:16px;
+}
+.btn{
+  padding:10px 14px;
+  border-radius:10px;
+  border:0;
+  cursor:pointer;
+  font-weight:700;
+  font-size:14px;
+}
+.btn.primary{background:var(--accent);color:#fff;box-shadow:0 6px 18px rgba(37,99,235,0.12);}
+.btn.ghost{background:transparent;border:1px solid #e6e6e9;color:var(--text);}
+.btn.warn{background:var(--danger);color:#fff;}
+.card{
+  background:var(--card);
+  padding:14px;
+  border-radius:12px;
+  box-shadow:0 6px 22px rgba(15,23,42,0.04);
+  margin-bottom:16px;
+}
+.summary{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+.summary .box{
+  flex:1 1 160px;
+  background:#fff;
+  border:1px solid #eee;
+  border-radius:10px;
+  padding:12px;
+  text-align:center;
+}
+.summary strong{display:block;font-size:18px;}
+.muted{color:var(--muted);font-size:13px;}
+.history-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:8px 0;
+  border-bottom:1px solid #f3f3f3;
+  flex-wrap:wrap;
+  gap:6px;
+}
+.progress-wrap{
+  height:10px;
+  background:#f1f5f9;
+  border-radius:8px;
+  overflow:hidden;
+  margin-top:8px;
+}
+.progress{
+  height:100%;
+  width:0;
+  background:linear-gradient(90deg,var(--accent),#4f46e5);
+}
+@media(max-width:720px){.summary{flex-direction:column;}}
+</style>
+</head>
+
+<body>
+<div class="wrap">
+  <h1>Data Manager — Pandian Tech Service</h1>
+  <div class="muted">Complete backup & restore system — includes Billing, Service, Monitor, Catalogue, Customers, and Settings.</div>
+
+  <div class="card">
+    <div class="summary">
+      <div class="box"><small>Total Keys</small><strong id="keyCount">0</strong></div>
+      <div class="box"><small>Last Backup</small><strong id="lastBackup">—</strong></div>
+      <div class="box"><small>Status</small><strong id="statusText">Idle</strong></div>
+    </div>
+    <div class="progress-wrap"><div id="progressBar" class="progress"></div></div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px">
+      <button id="backupBtn" class="btn primary">💾 Create Backup</button>
+      <button id="restoreBtn" class="btn ghost">♻️ Restore From File</button>
+      <button id="exportBtn" class="btn ghost">📤 Export All</button>
+      <button id="importBtn" class="btn ghost">📥 Import JSON</button>
+      <button id="clearBtn" class="btn warn">🗑️ Clear All</button>
+    </div>
+
+    <div style="margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <label style="display:flex;align-items:center;gap:6px">
+        <input type="checkbox" id="autoToggle"> Auto Backup
+      </label>
+      <label class="small">
+        Every <input type="number" id="interval" min="1" value="10"
+        style="width:60px;padding:5px;border-radius:6px;border:1px solid #ddd"> min
+      </label>
+      <button id="runNow" class="btn ghost">▶ Run Now</button>
+      <div id="autoStatus" class="small muted">Auto: OFF</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Backup History</h3>
+    <div class="muted small">
+      Backups are exported as .json files — unlimited size. All system pages included.
+    </div>
+    <div id="historyList" style="margin-top:8px"></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $=id=>document.getElementById(id);
+  const progressBar=$('progressBar');
+  const statusText=$('statusText');
+  const keyCount=$('keyCount');
+  const lastBackup=$('lastBackup');
+  const historyList=$('historyList');
+  const backupHistoryKey='pandian_backup_history_v4';
+  const idle=ms=>new Promise(r=>setTimeout(r,ms||10));
+  const progress=p=>progressBar.style.width=p+'%';
+  const setStatus=t=>statusText.innerText=t;
+  let autoTimer=null;
+
+  function getAllKeys(){
+    const keys=new Set();
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if(!k||k===backupHistoryKey)continue;
+      keys.add(k);
+    }
+    ['service','monitor','customers','catalogue','billing','settings','device','inventory','repairs']
+      .forEach(p=>{
+        for(let i=0;i<localStorage.length;i++){
+          const k=localStorage.key(i);
+          if(k && k.toLowerCase().includes(p)) keys.add(k);
+        }
+      });
+    keyCount.innerText=keys.size;
+    return Array.from(keys);
+  }
+
+  async function createBackupFile(){
+    try{
+      const keys=getAllKeys();
+      const all={};
+      setStatus('Collecting data...'); progress(5);
+      for(let i=0;i<keys.length;i++){
+        const k=keys[i];
+        try{
+          const raw=localStorage.getItem(k);
+          try{all[k]=JSON.parse(raw);}catch{all[k]=raw;}
+        }catch{all[k]=null;}
+        if(i%10===0)await idle(5);
+        progress(Math.round((i/keys.length)*85));
+      }
+      const blob=new Blob([JSON.stringify(all,null,2)],{type:'application/json'});
+      const filename=`Pandian_FullBackup_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.json`;
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob);
+      a.download=filename;
+      a.click();
+
+      const hist=JSON.parse(localStorage.getItem(backupHistoryKey)||'[]');
+      hist.unshift({id:Date.now(),time:new Date().toLocaleString(),file:filename});
+      if(hist.length>20)hist.length=20;
+      localStorage.setItem(backupHistoryKey,JSON.stringify(hist));
+      renderHistory();
+      lastBackup.innerText=new Date().toLocaleString();
+      setStatus('✅ Backup exported');
+      progress(100);
+      await idle(500);
+      progress(0);
+    }catch(e){
+      alert('Backup failed: '+e.message);
+      setStatus('❌ Error');
+      progress(0);
+    }
+  }
+
+  function restoreFromFile(){
+    const inp=document.createElement('input');
+    inp.type='file';
+    inp.accept='application/json';
+    inp.onchange=e=>{
+      const f=e.target.files[0];
+      if(!f)return;
+      const reader=new FileReader();
+      reader.onload=async ev=>{
+        try{
+          const data=JSON.parse(ev.target.result);
+          if(!confirm('Restore this backup? This will overwrite all app data.'))return;
+          const keys=Object.keys(data);
+          setStatus('Restoring data...');progress(10);
+          for(let i=0;i<keys.length;i++){
+            const k=keys[i];const v=data[k];
+            if(v===null)localStorage.removeItem(k);
+            else if(typeof v==='string')localStorage.setItem(k,v);
+            else localStorage.setItem(k,JSON.stringify(v));
+            if(i%10===0)await idle(5);
+            progress(Math.round((i/keys.length)*85));
+          }
+          progress(100);
+          await idle(200);
+          setStatus('✅ Restore complete — reload pages.');
+          progress(0);
+        }catch(err){
+          alert('Restore failed: '+err.message);
+        }
+      };
+      reader.readAsText(f);
+    };
+    inp.click();
+  }
+
+  function exportAll(){
+    const keys=getAllKeys();const obj={};
+    for(const k of keys){
+      try{
+        const raw=localStorage.getItem(k);
+        try{obj[k]=JSON.parse(raw);}catch{obj[k]=raw;}
+      }catch{}
+    }
+    const blob=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=`Pandian_Export_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.json`;
+    a.click();
+  }
+
+  function importJSON(){
+    const inp=document.createElement('input');
+    inp.type='file';
+    inp.accept='application/json';
+    inp.onchange=e=>{
+      const f=e.target.files[0];
+      if(!f)return;
+      const reader=new FileReader();
+      reader.onload=ev=>{
+        try{
+          const data=JSON.parse(ev.target.result);
+          if(!confirm('Import this data? It will merge with current data.'))return;
+          for(const k in data){
+            const v=data[k];
+            if(v===null)localStorage.removeItem(k);
+            else if(typeof v==='string')localStorage.setItem(k,v);
+            else localStorage.setItem(k,JSON.stringify(v));
+          }
+          setStatus('✅ Import done');
+          getAllKeys();
+        }catch(err){alert('Import failed: '+err.message);}
+      };
+      reader.readAsText(f);
+    };
+    inp.click();
+  }
+
+  function clearAll(){
+    if(!confirm('⚠️ This will clear ALL app data (except backups). Continue?'))return;
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if(k!==backupHistoryKey)localStorage.removeItem(k);
+    }
+    setStatus('🗑️ Cleared all data');
+    getAllKeys();
+  }
+
+  function renderHistory(){
+    const hist=JSON.parse(localStorage.getItem(backupHistoryKey)||'[]');
+    historyList.innerHTML='';
+    if(!hist.length){
+      historyList.innerHTML='<div class="muted small">No backups yet.</div>';
+      return;
+    }
+    hist.forEach(h=>{
+      const row=document.createElement('div');
+      row.className='history-row';
+      row.innerHTML=`
+        <div><strong>${h.time}</strong><div class='small'>${h.file}</div></div>
+        <div style='display:flex;gap:6px;flex-wrap:wrap'>
+          <button class='btn ghost' onclick='restoreFromFile()'>Restore</button>
+          <button class='btn ghost' onclick='deleteHist(${h.id})'>Delete</button>
+        </div>`;
+      historyList.appendChild(row);
+    });
+  }
+
+  window.deleteHist=id=>{
+    const hist=JSON.parse(localStorage.getItem(backupHistoryKey)||'[]');
+    const remain=hist.filter(x=>x.id!==id);
+    localStorage.setItem(backupHistoryKey,JSON.stringify(remain));
+    renderHistory();
+  };
+
+  function startAuto(){
+    stopAuto();
+    const min=Math.max(1,Number($('interval').value)||10);
+    $('autoStatus').innerText='Auto: ON ('+min+'m)';
+    autoTimer=setInterval(createBackupFile,min*60000);
+    setStatus('Auto backup active');
+  }
+  function stopAuto(){
+    if(autoTimer)clearInterval(autoTimer);
+    $('autoStatus').innerText='Auto: OFF';
+    setStatus('Auto backup stopped');
+  }
+
+  function init(){
+    getAllKeys();
+    renderHistory();
+    setStatus('Ready');
+  }
+
+  init();
+  $('backupBtn').onclick=createBackupFile;
+  $('restoreBtn').onclick=restoreFromFile;
+  $('exportBtn').onclick=exportAll;
+  $('importBtn').onclick=importJSON;
+  $('clearBtn').onclick=clearAll;
+  $('runNow').onclick=createBackupFile;
+  $('autoToggle').onchange=e=>{e.target.checked?startAuto():stopAuto();};
+})();
+</script>
+
+</body>
+</html>

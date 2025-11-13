@@ -1,0 +1,1551 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Service — Pandian Tech Service</title>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ===== Device Check styles (space-saving 2-per-row) ===== */
+.device-check-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+@media(max-width:600px){
+  .device-check-grid{ grid-template-columns:1fr 1fr; }
+}
+.device-check-box{
+  background:#f1f5f9;
+  padding:10px;
+  border-radius:10px;
+  min-height:72px;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+}
+.device-check-label{
+  border:0;background:transparent;font-size:14px;margin-bottom:6px;outline:none;color:var(--accent);
+}
+.device-check-options{ display:flex; gap:6px; }
+.dc-opt-btn{ padding:4px 8px;border-radius:6px;font-size:12px;background:#e2e8f0;border:1px solid #cbd5e1;cursor:pointer;user-select:none;}
+.dc-opt-btn.active-on{ background:#16a34a;color:#fff;border-color:#16a34a; }
+.dc-opt-btn.active-off{ background:#dc2626;color:#fff;border-color:#dc2626; }
+.dc-opt-btn.active-na{ background:#475569;color:#fff;border-color:#475569; }
+
+/* ===========================
+   Smooth Custom Dropdown + Base
+   =========================== */
+.custom-dropdown { position: relative; width: 100%; }
+.custom-dropdown input { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #e6e6e9; outline: none; transition: all 0.2s ease; }
+.custom-dropdown input:focus { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15); }
+.dropdown-list { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #fff; border: 1px solid #ddd; border-radius: 8px; max-height: 180px; overflow-y: auto; box-shadow: 0 4px 16px rgba(0,0,0,0.08); opacity: 0; transform: translateY(-10px); pointer-events: none; transition: all 0.2s ease; z-index: 10; }
+.dropdown-list.active { opacity: 1; transform: translateY(0); pointer-events: auto; }
+.dropdown-item { padding: 8px 10px; cursor: pointer; transition: background 0.15s ease; font-size: 14px; }
+.dropdown-item:hover { background: #f1f5f9; }
+
+/* ===========================
+   Page variables & reset
+   =========================== */
+:root{
+  --bg:#f4f5f7; --card:#fff; --muted:#8b8f95; --text:#0f1724;
+  --accent:#111827; --accent-2:#4b5563;
+}
+*{box-sizing:border-box}
+body{font-family:'Quicksand',sans-serif;background:var(--bg);color:var(--text);margin:0;-webkit-font-smoothing:antialiased}
+
+/* ====== Layout (header removed) ====== */
+.wrap{max-width:1100px;margin:18px auto;padding:18px}
+.card{background:var(--card);padding:16px;border-radius:12px;box-shadow:0 6px 22px rgba(15,23,42,0.04);margin-top:16px}
+label{display:block;margin-bottom:6px;color:var(--accent-2);font-size:13px}
+input,select,textarea,button{font-family:inherit}
+input,select,textarea{width:100%;padding:10px;border-radius:10px;border:1px solid #e6e6e9;margin-bottom:10px}
+button{cursor:pointer;border-radius:10px;padding:10px 14px;border:0;font-weight:600}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-ghost{background:transparent;border:1px solid #e6e6e9;color:var(--accent)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+.warranty{display:flex;gap:10px}
+.warranty button{background:#fff;border:1px solid #e6e6e9;padding:8px 10px;border-radius:8px}
+.warranty button.active{background:var(--accent);color:#fff}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+.small{font-size:13px;color:var(--muted)}
+.note{font-size:12px;color:var(--muted);margin-top:6px}
+.inline-row{display:flex;gap:8px;align-items:center}
+.inline-row .small-label{width:120px;font-size:13px;color:var(--muted)}
+
+/* pattern modal styles */
+.pattern-overlay { position: fixed; inset:0; background: rgba(0,0,0,0.6); display:none; align-items:center; justify-content:center; z-index:12000; }
+.pattern-overlay.active { display:flex; }
+.pattern-modal { width: min(360px, 94vw); background: #fff; border-radius:12px; padding:18px; box-shadow:0 12px 40px rgba(0,0,0,0.35); display:flex; flex-direction:column; gap:12px; align-items:center; }
+.pattern-title { font-weight:700; font-size:16px; }
+.pattern-desc { font-size:13px; color:var(--muted); text-align:center; }
+.pattern-area { position:relative; width: 86%; padding-top:86%; } /* square */
+.pattern-grid { position:absolute; inset:0; display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); gap:18px; padding:18px; }
+.pattern-dot { width:100%; height:100%; display:flex; align-items:center; justify-content:center; border-radius:50%; background:#f1f5f9; box-shadow: inset 0 -2px 0 rgba(0,0,0,0.02); transition: transform 140ms ease; user-select:none; }
+.pattern-dot.active { background:var(--accent); color:#fff; transform: scale(0.9); }
+.pattern-canvas { position:absolute; inset:0; pointer-events:none; }
+.pattern-actions { display:flex; gap:8px; width:100%; justify-content:center; }
+.btn-sm { padding:8px 10px; border-radius:8px; font-weight:700; font-size:14px; }
+.btn-clear { background:#fff;border:1px solid #e6e6e9;color:var(--accent) }
+.btn-save { background:var(--accent); color:#fff; }
+
+/* small preview for selected pattern */
+.pattern-preview { font-size:13px; color:var(--muted); text-align:center; min-height:20px; }
+
+/* accessibility focus */
+.pattern-dot:focus { outline:2px solid #2563eb; outline-offset:2px; }
+
+/* compact preview box at top-right */
+.header-meta { width:240px; }
+.header-card { padding:10px; border-radius:8px; background:#fff; border:1px solid #eee; box-shadow:0 4px 12px rgba(0,0,0,0.03); }
+
+/* small tweaks for icon file input */
+.logo-upload { display:flex; align-items:center; gap:8px; }
+.logo-upload input[type=file] { display:none; }
+.icon-btn { display:inline-flex; align-items:center; gap:8px; padding:8px 10px; border-radius:8px; background:#f5f5f5; border:1px solid #eee; cursor:pointer; }
+
+/* responsive */
+@media(max-width:600px){
+  .wrap{padding:12px}
+  .pattern-modal { width: min(320px, 94vw); padding:14px }
+  .pattern-grid { gap:12px; padding:12px }
+  .header-meta { width:100%; margin-top:12px; }
+}
+</style>
+</head>
+<body>
+<div id="commonSidebar"></div>
+<script>
+fetch("sidebar.html")
+  .then(res => res.text())
+  .then(html => {
+    document.getElementById("commonSidebar").innerHTML = html;
+  });
+</script>
+
+<!-- Then wrap your page content like this -->
+<div class="main-content">
+  <!-- your existing page UI (billing, service, etc.) -->
+</div>
+
+
+  <div class="wrap">
+    <header style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <div style="flex:1">
+        <h1 id="title" style="margin:0;font-size:20px">Service Billing — Pandian Tech Service</h1>
+        <div class="lead" style="color:var(--muted);font-size:13px;margin-top:6px">Repair job sheets — saves to localStorage and syncs with other pages.</div>
+      </div>
+      <div class="header-meta">
+        <div class="header-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+            <div>
+             <div style="font-size:12px;color:var(--muted)">Job No</div>
+<input id="jobNoInput" type="text" style="font-weight:700;font-size:16px;border:1px solid #e6e6e9;border-radius:6px;width:90px;text-align:center;">
+
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:12px;color:var(--muted)">Date</div>
+              <div id="jobDate" style="font-weight:700;font-size:13px;margin-bottom:4px;"></div>
+              <input id="jobDatePicker" type="date" style="font-size:12px;padding:4px 6px;border:1px solid #e6e6e9;border-radius:6px;width:100%;">
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Customer -->
+    <div class="card" id="customerCard">
+      <h3 style="margin:0 0 10px 0">Customer</h3>
+      <div class="grid">
+        <div>
+          <label for="custName">Name</label>
+          <input id="custName" placeholder="Type to search or add">
+        </div>
+        <div>
+          <label for="custMobile">Mobile</label>
+          <div style="display:flex;gap:8px">
+            <input id="custMobile" placeholder="Mobile">
+            <button id="findCust" class="btn-ghost">🔍 Find</button>
+          </div>
+        </div>
+      </div>
+      <label for="custAddress">Address</label>
+      <input id="custAddress" placeholder="Optional address">
+      <div class="note">Tip: typing a saved name or number will auto-fill previous device details.</div>
+    </div>
+
+    <!-- Device -->
+    <div class="card">
+      <h3 style="margin:0 0 10px 0">Device Information</h3>
+      <div class="grid">
+        <div>
+          <label for="deviceType">Device Type</label>
+          <div class="custom-dropdown">
+            <input id="deviceType" type="text" placeholder="Enter or select (enter to save)">
+            <div class="dropdown-list" id="deviceTypeDropdown"></div>
+          </div>
+        </div>
+        <div>
+          <label for="deviceBrand">Device Brand</label>
+          <div class="custom-dropdown">
+            <input id="deviceBrand" type="text" placeholder="Enter or select (enter to save)">
+            <div class="dropdown-list" id="deviceBrandDropdown"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div>
+          <label for="deviceModel">Device Model</label>
+          <div class="custom-dropdown">
+            <input id="deviceModel" type="text" placeholder="Enter or select (enter to save)">
+            <div class="dropdown-list" id="deviceModelDropdown"></div>
+          </div>
+        </div>
+        <div>
+          <label for="custComplaint">Customer Complaint</label>
+          <div class="custom-dropdown">
+            <input id="custComplaint" type="text" placeholder="Enter or select (enter to save)">
+            <div class="dropdown-list" id="custComplaintDropdown"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div>
+          <label for="techDiagnosis">Technician Diagnosis</label>
+          <div class="custom-dropdown">
+            <input id="techDiagnosis" type="text" placeholder="Enter or select (enter to save)">
+            <div class="dropdown-list" id="techDiagnosisDropdown"></div>
+          </div>
+        </div>
+        <div>
+          <label>Warranty</label>
+          <div class="warranty" id="warrantyBtns">
+            <button data-val="1" type="button">1m</button>
+            <button data-val="3" type="button">3m</button>
+            <button data-val="6" type="button">6m</button>
+            <button data-val="12" type="button">12m</button>
+          </div>
+        </div>
+      </div>
+
+      <label for="remarks">Remarks</label>
+      <textarea id="remarks" rows="2" placeholder="Notes / accessories"></textarea>
+
+      <!-- Device Password -->
+      <div style="margin-top:6px">
+        <label for="passwordType">Device Password Type</label>
+        <div class="inline-row">
+          <select id="passwordType" aria-label="Password type">
+            <option value="none">None</option>
+            <option value="text">Text</option>
+            <option value="pin">PIN</option>
+            <option value="pattern">Pattern</option>
+          </select>
+          <input id="passwordValue" placeholder="Enter password or tap Pattern" aria-label="Device password value">
+          <button id="setPatternBtn" class="btn-ghost" title="Open pattern pad">Set Pattern</button>
+        </div>
+        <div class="pattern-preview" id="patternPreview">Password: none</div>
+      </div>
+    </div>
+    <!-- ===== Device Check & Accessories (2-per-row ON/OFF/N/A) ===== -->
+<div class="card" id="deviceCheckCard">
+  <h3 style="margin:0 0 10px 0">Device Checking</h3>
+
+  <div id="deviceCheckGrid" class="device-check-grid">
+    <!-- initial boxes (2-per-row) -->
+    <div class="device-check-box">
+      <input type="text" class="device-check-label" value="Display Working">
+      <div class="device-check-options">
+        <span class="dc-opt-btn" data-type="on" onclick="dc_selectOpt(this)">ON</span>
+        <span class="dc-opt-btn" data-type="off" onclick="dc_selectOpt(this)">OFF</span>
+        <span class="dc-opt-btn" data-type="na" onclick="dc_selectOpt(this)">N/A</span>
+      </div>
+    </div>
+
+    <div class="device-check-box">
+      <input type="text" class="device-check-label" value="Touch Working">
+      <div class="device-check-options">
+        <span class="dc-opt-btn" data-type="on" onclick="dc_selectOpt(this)">ON</span>
+        <span class="dc-opt-btn" data-type="off" onclick="dc_selectOpt(this)">OFF</span>
+        <span class="dc-opt-btn" data-type="na" onclick="dc_selectOpt(this)">N/A</span>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-ghost" style="margin-top:8px" onclick="dc_addBox()">+ Add Check Item</button>
+</div>
+
+<div class="card" id="accCheckCard">
+  <h3 style="margin:0 0 10px 0">Accessories Received</h3>
+
+  <div id="accCheckGrid" class="device-check-grid">
+    <div class="device-check-box">
+      <input type="text" class="device-check-label" value="SIM Card">
+      <div class="device-check-options">
+        <span class="dc-opt-btn" data-type="on" onclick="dc_selectOpt(this)">ON</span>
+        <span class="dc-opt-btn" data-type="off" onclick="dc_selectOpt(this)">OFF</span>
+        <span class="dc-opt-btn" data-type="na" onclick="dc_selectOpt(this)">N/A</span>
+      </div>
+    </div>
+
+    <div class="device-check-box">
+      <input type="text" class="device-check-label" value="Charger">
+      <div class="device-check-options">
+        <span class="dc-opt-btn" data-type="on" onclick="dc_selectOpt(this)">ON</span>
+        <span class="dc-opt-btn" data-type="off" onclick="dc_selectOpt(this)">OFF</span>
+        <span class="dc-opt-btn" data-type="na" onclick="dc_selectOpt(this)">N/A</span>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-ghost" style="margin-top:8px" onclick="dc_addAccessory()">+ Add Accessory</button>
+</div>
+
+
+    <!-- Payment -->
+    <div class="card">
+      <h3 style="margin:0 0 10px 0">Payment</h3>
+      <div class="grid">
+        <div>
+          <label for="serviceCharge">Service Charge (₹)</label>
+          <input id="serviceCharge" type="number" value="0" min="0">
+        </div>
+        <div>
+          <label for="paid">Paid (₹)</label>
+          <input id="paid" type="number" value="0" min="0">
+        </div>
+      </div>
+
+      <div class="grid">
+        <div>
+          <label for="balance">Balance</label>
+          <input id="balance" readonly>
+        </div>
+        <div>
+          <label for="payMode">Payment Mode</label>
+          <select id="payMode"></select>
+        </div>
+      </div>
+
+      <div class="actions" style="margin-top:12px">
+        <button id="saveJob" class="btn-primary">Save Job</button>
+        <button id="nextJob" class="btn-ghost">Next Job</button>
+        <button id="printJob" class="btn-ghost">Print</button>
+        <button id="shareJob" class="btn-ghost">WhatsApp</button>
+        <button id="clearForm" class="btn-ghost">Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pattern modal -->
+  <div id="patternOverlay" class="pattern-overlay" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="pattern-modal" role="document" aria-live="polite">
+      <div class="pattern-title">Draw Pattern</div>
+      <div class="pattern-desc">Drag over dots to draw. Release to save. Use Clear to reset.</div>
+      <div class="pattern-area" id="patternArea" aria-hidden="false">
+        <canvas class="pattern-canvas" id="patternCanvas"></canvas>
+        <div class="pattern-grid" id="patternGrid" aria-hidden="true">
+          <!-- 3x3 dots generated by JS -->
+        </div>
+      </div>
+      <div class="pattern-preview" id="patternModalPreview">Sequence: —</div>
+      <div class="pattern-actions">
+        <button id="patternClear" class="btn-sm btn-clear">Clear</button>
+        <button id="patternCancel" class="btn-sm btn-clear">Cancel</button>
+        <button id="patternSave" class="btn-sm btn-save">Save</button>
+      </div>
+    </div>
+  </div>
+<script>
+/**
+ * service-full.js
+ * Full service page script — preserves all existing functions, autosave, dropdowns, pattern modal,
+ * print (A4/thermal), WhatsApp share, job save, customer sync, and live storage sync.
+ *
+ * Drop into service.html replacing the old script block. Header / mobile nav logic removed.
+ */
+
+(() => {
+  // shorthand
+  const $ = id => document.getElementById(id);
+  const $$ = sel => document.querySelector(sel);
+
+  // keys
+  const SETTINGS_KEY = 'companyDetails', CUSTOMERS_KEY = 'customers', OPTIONS_KEY = 'serviceOptions', JOBS_KEY = 'jobs';
+  const DRAFT_KEY = 'service_draft'; // per-keypress autosave draft
+
+  // storage helpers
+  const loadJSON = (k, fallback) => {
+    try { return JSON.parse(localStorage.getItem(k) || JSON.stringify(fallback)); }
+    catch (e) { return fallback; }
+  };
+  const saveJSON = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+
+  // state
+  let settings = loadJSON(SETTINGS_KEY, {});
+  let customers = loadJSON(CUSTOMERS_KEY, []);
+  let options = loadJSON(OPTIONS_KEY, {});
+  let jobs = loadJSON(JOBS_KEY, []);
+
+  // defaults for options (non-destructive)
+  options.deviceType = options.deviceType || ['Mobile','Laptop','Desktop','CCTV'];
+  options.deviceBrand = options.deviceBrand || ['Samsung','Apple','Xiaomi','HP'];
+  options.deviceModel = options.deviceModel || [];
+  options.custComplaint = options.custComplaint || ['Not powering','Screen damage','Battery issue'];
+  options.techDiagnosis = options.techDiagnosis || ['Battery failure','Screen broken','Software issue'];
+
+  // -----------------------
+  // Datalist / Dropdown helpers
+  // -----------------------
+  function populateDatalist(id, arr){
+    const el = $(id);
+    if(!el) return;
+    el.innerHTML = '';
+    (arr||[]).forEach(v=>{
+      const o = document.createElement('option');
+      o.value = v;
+      el.appendChild(o);
+    });
+  }
+
+  function populateAll(){
+    populateDatalist('deviceTypeList', options.deviceType);
+    populateDatalist('deviceBrandList', options.deviceBrand);
+    populateDatalist('deviceModelList', options.deviceModel);
+    populateDatalist('custComplaintList', options.custComplaint);
+    populateDatalist('techDiagnosisList', options.techDiagnosis);
+  }
+
+  populateAll();
+
+  // Smooth custom dropdown rendering for the fields that have .dropdown-list in markup
+  const dropdownFields = [
+    { id: 'deviceType', key: 'deviceType' },
+    { id: 'deviceBrand', key: 'deviceBrand' },
+    { id: 'deviceModel', key: 'deviceModel' },
+    { id: 'custComplaint', key: 'custComplaint' },
+    { id: 'techDiagnosis', key: 'techDiagnosis' }
+  ];
+
+  dropdownFields.forEach(f => {
+    const input = $(f.id);
+    const list = $(f.id + 'Dropdown');
+    if (!input || !list) return;
+
+    function renderList() {
+      list.innerHTML = '';
+      const values = options[f.key] || [];
+      const search = (input.value || '').trim().toLowerCase();
+      const filtered = values.filter(v => v.toLowerCase().includes(search));
+      if (!filtered.length) {
+        list.innerHTML = '<div class="dropdown-item" style="color:#888;">No matches</div>';
+        return;
+      }
+      filtered.forEach(val => {
+        const item = document.createElement('div');
+        item.className = 'dropdown-item';
+        item.textContent = val;
+        item.addEventListener('click', () => {
+          input.value = val;
+          list.classList.remove('active');
+          saveDraft();
+        });
+        list.appendChild(item);
+      });
+    }
+
+    input.addEventListener('focus', () => {
+      renderList();
+      list.classList.add('active');
+    });
+
+    input.addEventListener('input', () => renderList());
+    input.addEventListener('blur', () => setTimeout(() => list.classList.remove('active'), 150));
+  });
+
+  // lightweight specialized dropdown example for deviceModel used in markup earlier (already covered above)
+
+  // -----------------------
+  // Payment modes population
+  // -----------------------
+  function populatePayModes(){
+    const sel = $('payMode');
+    if(!sel) return;
+    sel.innerHTML = '';
+    const arr = (settings.paymentModes || 'Cash,UPI,Card').split(',');
+    arr.forEach(a=>{
+      const o=document.createElement('option'); o.value=a; o.text=a; sel.appendChild(o);
+    });
+  }
+  populatePayModes();
+
+  // -----------------------
+  // Job number header
+  // -----------------------
+  function nextJobNo(){
+    const start = Number(settings.startJobNo || 1000);
+    const last = jobs.length ? Math.max(...jobs.map(j => Number(j.jobNo||start-1))) : start-1;
+    return last + 1;
+  }
+  function updateHeader(){
+    const el = $('jobNo');
+    if(el) el.innerText = String(nextJobNo()).padStart(4,'0');
+    const jobDateEl = $('jobDate');
+    if(jobDateEl) jobDateEl.innerText = new Date().toLocaleString();
+    const titleEl = $('title');
+    if(titleEl) titleEl.innerText = 'Service Billing — ' + (settings.companyName || 'Pandian Tech Service');
+  }
+  updateHeader();
+  // Editable Job Number System
+function makeJobNumberEditable() {
+  const input = document.getElementById('jobNoInput');
+  if (!input) return;
+
+  // Determine next job number
+  const start = Number(settings.startJobNo || 1000);
+  const last = jobs.length ? Math.max(...jobs.map(j => Number(j.jobNo || start - 1))) : start - 1;
+  const next = last + 1;
+
+  // Prefill the next job number
+  input.value = String(next).padStart(4, '0');
+
+  // Save typed job number to draft
+  input.addEventListener('input', () => {
+    const draft = JSON.parse(localStorage.getItem('service_draft') || '{}');
+    draft.manualJobNo = input.value;
+    localStorage.setItem('service_draft', JSON.stringify(draft));
+  });
+}
+makeJobNumberEditable();
+
+  // -----------------------
+  // Date picker binding
+  // -----------------------
+  const jobDatePicker = $('jobDatePicker');
+  if (jobDatePicker) {
+    const today = new Date().toISOString().split('T')[0];
+    jobDatePicker.value = today;
+    $('jobDate') && ($('jobDate').innerText = new Date(today).toLocaleDateString());
+    jobDatePicker.addEventListener('change', () => {
+      const val = jobDatePicker.value;
+      if (val && $('jobDate')) $('jobDate').innerText = new Date(val).toLocaleDateString();
+    });
+  }
+
+  // -----------------------
+  // Warranty buttons
+  // -----------------------
+  let selectedWarranty = null;
+  function bindWarrantyButtons(){
+    const wc = document.querySelectorAll('#warrantyBtns button');
+    if(!wc) return;
+    wc.forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        document.querySelectorAll('#warrantyBtns button').forEach(x=>x.classList.remove('active'));
+        btn.classList.add('active');
+        selectedWarranty = btn.dataset.val;
+        saveDraft();
+      });
+    });
+  }
+  bindWarrantyButtons();
+
+  // -----------------------
+  // Option saver: when user presses Enter or blur, store new option into options and persist
+  // -----------------------
+  function attachOptionSaver(inputId, optKey, listId) {
+    const inp = $(inputId); if(!inp) return;
+    const saveIfNew = () => {
+      const v = (inp.value || '').trim(); if(!v) return;
+      options[optKey] = options[optKey] || [];
+      if(!options[optKey].includes(v)){ options[optKey].push(v); saveJSON(OPTIONS_KEY, options); populateDatalist(listId, options[optKey]); }
+    };
+    inp.addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); saveIfNew(); inp.blur(); }});
+    inp.addEventListener('blur', saveIfNew);
+  }
+  ['deviceType','deviceBrand','deviceModel','custComplaint','techDiagnosis'].forEach(id=>attachOptionSaver(id,id,id+'List'));
+
+  // -----------------------
+  // Draft autosave (per keypress)
+  // -----------------------
+  function getFormState(){
+    return {
+      custName: $('custName') ? $('custName').value : '',
+      custMobile: $('custMobile') ? $('custMobile').value : '',
+      custAddress: $('custAddress') ? $('custAddress').value : '',
+      deviceType: $('deviceType') ? $('deviceType').value : '',
+      deviceBrand: $('deviceBrand') ? $('deviceBrand').value : '',
+          deviceChecks: dc_collectChecks('deviceCheckGrid'),
+    accessories: dc_collectChecks('accCheckGrid'),
+      deviceModel: $('deviceModel') ? $('deviceModel').value : '',
+      custComplaint: $('custComplaint') ? $('custComplaint').value : '',
+      techDiagnosis: $('techDiagnosis') ? $('techDiagnosis').value : '',
+      remarks: $('remarks') ? $('remarks').value : '',
+      serviceCharge: $('serviceCharge') ? $('serviceCharge').value : '',
+      paid: $('paid') ? $('paid').value : '',
+      payMode: $('payMode') ? $('payMode').value : '',
+      warranty: selectedWarranty || null,
+      passwordType: $('passwordType') ? $('passwordType').value : 'none',
+      passwordValue: $('passwordValue') ? $('passwordValue').value : '',
+      timestamp: new Date().toISOString()
+    };
+  }
+  function saveDraft(){
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify(getFormState())); } catch(e){/*ignore*/ }
+  }
+  function loadDraft(){
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if(!raw) return;
+      const d = JSON.parse(raw);
+      if(!d) return;
+      if($('custName')) $('custName').value = d.custName || '';
+      if($('custMobile')) $('custMobile').value = d.custMobile || '';
+      if($('custAddress')) $('custAddress').value = d.custAddress || '';
+      if($('deviceType')) $('deviceType').value = d.deviceType || '';
+      if($('deviceBrand')) $('deviceBrand').value = d.deviceBrand || '';
+      if($('deviceModel')) $('deviceModel').value = d.deviceModel || '';
+      if($('custComplaint')) $('custComplaint').value = d.custComplaint || '';
+      if($('techDiagnosis')) $('techDiagnosis').value = d.techDiagnosis || '';
+      if($('remarks')) $('remarks').value = d.remarks || '';
+      // restore device checks + accessories from draft
+if(d.deviceChecks) dc_renderFromData('deviceCheckGrid', d.deviceChecks);
+if(d.accessories) dc_renderFromData('accCheckGrid', d.accessories);
+
+      if($('serviceCharge')) $('serviceCharge').value = d.serviceCharge || 0;
+      if($('paid')) $('paid').value = d.paid || 0;
+      if(d.payMode && $('payMode')) $('payMode').value = d.payMode;
+      selectedWarranty = d.warranty || null;
+      document.querySelectorAll('#warrantyBtns button').forEach(b => b.classList.toggle('active', b.dataset.val === String(selectedWarranty)));
+      if(d.passwordType && $('passwordType')) $('passwordType').value = d.passwordType;
+      if(d.passwordValue && $('passwordValue')) $('passwordValue').value = d.passwordValue;
+      updatePasswordPreview();
+      calcBalance();
+    } catch(e){ console.warn('loadDraft error', e); }
+  }
+
+  // attach per-input autosave
+  const autosaveInputs = ['custName','custMobile','custAddress','deviceType','deviceBrand','deviceModel','custComplaint','techDiagnosis','remarks','serviceCharge','paid','payMode','passwordValue','passwordType'];
+  autosaveInputs.forEach(id=>{
+    const el = $(id);
+    if(!el) return;
+    el.addEventListener('input', saveDraft);
+    el.addEventListener('change', saveDraft);
+  });
+
+  // -----------------------
+  // Balance calculation
+  // -----------------------
+  // ================================
+// ⚙️ Change-to-Return Balance System
+// ================================
+function calcBalance() {
+  const charge = Number($('serviceCharge')?.value || 0);
+  const paid = Number($('paid')?.value || 0);
+  const balInput = $('balance');
+  if (!balInput) return;
+
+  let resultText = '';
+  let resultValue = 0;
+
+  if (paid < charge) {
+    // customer still owes money
+    resultValue = charge - paid;
+    resultText = `Pending ₹${resultValue.toFixed(2)}`;
+    balInput.style.color = '#d97706'; // orange
+  } else if (paid === charge) {
+    // fully paid
+    resultValue = 0;
+    resultText = `Settled ₹0.00`;
+    balInput.style.color = '#059669'; // green
+  } else {
+    // paid more → change to return
+    resultValue = paid - charge;
+    resultText = `Change to Return ₹${resultValue.toFixed(2)}`;
+    balInput.style.color = '#dc2626'; // red
+  }
+
+  balInput.value = resultText;
+  saveDraft();
+}
+
+
+  // -----------------------
+  // Find & fill customer (sync)
+  // -----------------------
+  function findCustomer(q){
+    if(!q) return null;
+    const s = String(q).trim().toLowerCase();
+    return customers.find(c => {
+      if(!c) return false;
+      if(c.mobile && c.mobile.includes(s)) return true;
+      if(c.name && c.name.toLowerCase() === s) return true;
+      if(c.name && c.name.toLowerCase().includes(s)) return true;
+      return false;
+    });
+  }
+  function fillCustomer(c){
+    if(!c) return;
+    if($('custName')) $('custName').value = c.name || '';
+    if($('custMobile')) $('custMobile').value = c.mobile || '';
+    if($('custAddress')) $('custAddress').value = c.address || '';
+    if(c.lastDevice){
+      if($('deviceType')) $('deviceType').value = c.lastDevice.type || '';
+      if($('deviceBrand')) $('deviceBrand').value = c.lastDevice.brand || '';
+      if($('deviceModel')) $('deviceModel').value = c.lastDevice.model || '';
+      if($('custComplaint')) $('custComplaint').value = c.lastDevice.complaint || '';
+      if($('techDiagnosis')) $('techDiagnosis').value = c.lastDevice.diagnosis || '';
+      if(c.lastDevice.passwordType && $('passwordType')) $('passwordType').value = c.lastDevice.passwordType;
+      if(c.lastDevice.passwordValue && $('passwordValue')) $('passwordValue').value = c.lastDevice.passwordValue;
+      updatePasswordPreview();
+    }
+    saveDraft();
+  }
+
+  if($('custName')) $('custName').addEventListener('blur', ()=>{ const f = findCustomer($('custName').value); if(f) fillCustomer(f); });
+  if($('custMobile')) $('custMobile').addEventListener('blur', ()=>{ const f = findCustomer($('custMobile').value); if(f) fillCustomer(f); });
+  if($('findCust')) $('findCust').addEventListener('click', () => {
+    const q = ($('custName') && $('custName').value.trim()) || ($('custMobile') && $('custMobile').value.trim());
+    if(!q) return alert('Type name or mobile to search');
+    const f = findCustomer(q);
+    if(!f) return alert('Customer not found');
+    fillCustomer(f);
+    alert('Customer loaded');
+  });
+
+  // -----------------------
+  // Save job
+// -----------------------
+if($('saveJob')) $('saveJob').addEventListener('click', ()=> {
+  const name = $('custName') ? $('custName').value.trim() : '';
+  const mobile = $('custMobile') ? $('custMobile').value.trim() : '';
+  if(!name || !mobile) return alert('Customer name and mobile are required');
+
+  const jobNo = document.getElementById('jobNoInput')?.value || nextJobNo();
+
+  const job = {
+    id: 'job_' + Date.now(),
+    jobNo,
+    dateTime: new Date().toLocaleString(),
+    customer: { 
+      name, 
+      mobile, 
+      address: $('custAddress') ? $('custAddress').value || '' : '' 
+    },
+    device: {
+      type: $('deviceType') ? $('deviceType').value || '' : '',
+      brand: $('deviceBrand') ? $('deviceBrand').value || '' : '',
+      model: $('deviceModel') ? $('deviceModel').value || '' : '',
+      complaint: $('custComplaint') ? $('custComplaint').value || '' : '',
+      diagnosis: $('techDiagnosis') ? $('techDiagnosis').value || '' : '',
+      passwordType: $('passwordType') ? $('passwordType').value || 'none' : 'none',
+      passwordValue: $('passwordValue') ? $('passwordValue').value || '' : ''
+    },
+
+    /* ⭐⭐⭐ ADD THESE TWO LINES ⭐⭐⭐ */
+    deviceChecks: dc_collectChecks('deviceCheckGrid'),
+    accessories: dc_collectChecks('accCheckGrid'),
+    /* ⭐⭐⭐ END ⭐⭐⭐ */
+
+    warranty: selectedWarranty ? Number(selectedWarranty) : null,
+    charge: Number($('serviceCharge') ? $('serviceCharge').value : 0) || 0,
+    paid: Number($('paid') ? $('paid').value : 0) || 0,
+    balance: Number($('balance') ? $('balance').value : 0) || 0,
+    paymentMode: $('payMode') ? $('payMode').value || 
+                 (settings.paymentModes ? settings.paymentModes.split(',')[0] : 'Cash') 
+                 : 'Cash',
+    remarks: $('remarks') ? $('remarks').value || '' : ''
+  };
+
+  jobs.push(job);
+  saveJSON(JOBS_KEY, jobs);
+
+    // update/create customer (sync)
+    let cust = customers.find(c => (c.mobile && c.mobile === mobile) || (c.name && c.name.toLowerCase() === name.toLowerCase()));
+    const lastDevice = {
+      type: job.device.type, brand: job.device.brand, model: job.device.model,
+      complaint: job.device.complaint, diagnosis: job.device.diagnosis,
+      passwordType: job.device.passwordType, passwordValue: job.device.passwordValue
+    };
+    if(!cust){
+      cust = { id: 'c_' + Date.now(), name, mobile, address: job.customer.address || '', jobs: [job.id], lastDevice };
+      customers.push(cust);
+    } else {
+      cust.name = name;
+      cust.address = job.customer.address || cust.address;
+      cust.jobs = cust.jobs || [];
+      cust.jobs.push(job.id);
+      cust.lastDevice = lastDevice;
+    }
+    saveJSON(CUSTOMERS_KEY, customers);
+
+    // ensure options updated (device types/brands/models etc.)
+    ['deviceType','deviceBrand','deviceModel','custComplaint','techDiagnosis'].forEach(key => {
+      const el = $(key);
+      const val = (el && el.value) ? el.value.trim() : '';
+      if(!val) return;
+      options[key] = options[key] || [];
+      if(!options[key].includes(val)) options[key].push(val);
+    });
+    saveJSON(OPTIONS_KEY, options);
+    populateAll();
+
+    alert('Job saved — #' + jobNo);
+    updateHeader(); // update for next job
+    // do not clear draft automatically (user asked to keep functions intact)
+    // Auto-increment next job number after saving
+document.getElementById('jobNoInput').value = String(Number(jobNo) + 1).padStart(4, '0');
+
+  });
+
+  // -----------------------
+  // Next Job button (clear form)
+  // -----------------------
+  if($('nextJob')) $('nextJob').addEventListener('click', ()=> {
+    if(!confirm('Proceed to next job? Current draft will be cleared.')) return;
+    clearForm();
+    localStorage.removeItem(DRAFT_KEY);
+    updateHeader();
+  });
+
+  // -----------------------
+// Print job (A4 / Thermal) — synced with settings + Device Checks + Accessories
+// -----------------------
+(function(){
+  function escapeHtml(s){
+    return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]);
+  }
+
+  function getCompanyDetails(){
+    try {
+      const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') || {};
+      const logo = localStorage.getItem('companyLogo') || s.logo || '';
+      return {...s, logo};
+    } catch(e){ return {}; }
+  }
+
+  function printHtmlViaIframe(html){
+    const iframe=document.createElement('iframe');
+    iframe.style.position='fixed';
+    iframe.style.left='-9999px';
+    iframe.style.width='0';
+    iframe.style.height='0';
+    document.body.appendChild(iframe);
+    const doc=iframe.contentDocument||iframe.contentWindow.document;
+    doc.open(); doc.write(html); doc.close();
+    setTimeout(()=>{
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+      setTimeout(()=>document.body.removeChild(iframe),800);
+    },500);
+  }
+
+  function printServiceJob(){
+    const c = getCompanyDetails();
+    const jobNo = $('jobNoInput')?.value || '';
+
+    const custName = $('custName')?.value || '-';
+    const custMobile = $('custMobile')?.value || '-';
+    const custAddress = $('custAddress')?.value || '-';
+    const deviceType = $('deviceType')?.value || '';
+    const deviceBrand = $('deviceBrand')?.value || '';
+    const deviceModel = $('deviceModel')?.value || '';
+    const complaint = $('custComplaint')?.value || '';
+    const diagnosis = $('techDiagnosis')?.value || '';
+    const remarks = $('remarks')?.value || '';
+    const warrantyText = document.querySelector('#warrantyBtns button.active')?.innerText || 'No warranty';
+    const serviceCharge = Number($('serviceCharge')?.value) || 0;
+    const paid = Number($('paid')?.value) || 0;
+    const balance = Math.max(0, serviceCharge - paid);
+    const passwordType = $('passwordType')?.value || 'none';
+    const passwordValue = $('passwordValue')?.value || '';
+
+    // NEW → Collect Device Checks + Accessories
+    const deviceChecks = dc_collectChecks('deviceCheckGrid');
+    const accessories = dc_collectChecks('accCheckGrid');
+
+    const logo = c.logo || '';
+    const companyName = c.companyName || 'Pandian Tech Service';
+    const phone = c.companyPhone || '';
+    const gst = c.companyGST || '';
+    const printerType = (c.printType || 'A4').toUpperCase();
+    const addrParts = [c.companyAddress, c.companyCity && `${c.companyCity} - ${c.companyPincode}`].filter(Boolean);
+    const fullAddress = addrParts.join(', ');
+
+    const sharedCSS = `
+      <style>
+        *{box-sizing:border-box;}
+        body{margin:0;font-family:'Quicksand',sans-serif;color:#000;}
+        .center{text-align:center;}
+        .muted{color:#555;font-size:12px;}
+        .line{border-top:1px dashed #aaa;margin:8px 0;}
+        img.logo{display:block;margin:0 auto 6px;max-width:80px;max-height:80px;object-fit:contain;}
+        .foot{text-align:center;font-size:11px;margin-top:8px;}
+      </style>`;
+
+    const deviceFull = `${deviceType} ${deviceBrand} ${deviceModel}`.trim();
+    let html = '';
+
+    // =============================
+    // A4 PRINT
+    // =============================
+    if (printerType === 'A4'){
+      html = `<!doctype html><html><head><meta charset="utf-8">
+      <title>Job ${escapeHtml(jobNo)}</title>
+      ${sharedCSS}
+      <style>@page{size:A4;margin:15mm;}body{font-size:13px}</style>
+      </head><body>
+      <div style="padding:12px;max-width:720px;margin:0 auto">
+
+        ${logo ? `<img class="logo" src="${logo}" alt="logo">` : ''}
+        <h2 class="center" style="margin:0">${escapeHtml(companyName)}</h2>
+        ${fullAddress ? `<div class="center muted">${escapeHtml(fullAddress)}</div>` : ''}
+        ${phone ? `<div class="center muted">📞 ${escapeHtml(phone)}</div>` : ''}
+        ${gst ? `<div class="center muted">GSTIN: ${escapeHtml(gst)}</div>` : ''}
+        <div class="line"></div>
+
+        <div style="display:flex;justify-content:space-between;margin-top:8px">
+          <div><b>Job No:</b> ${escapeHtml(jobNo)}</div>
+          <div><b>Date:</b> ${escapeHtml(new Date().toLocaleString())}</div>
+        </div>
+
+        <div style="margin-top:8px"><b>Customer:</b> ${escapeHtml(custName)} (${escapeHtml(custMobile)})</div>
+        <div><b>Address:</b> ${escapeHtml(custAddress)}</div>
+
+        <div class="line"></div>
+
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <tr><td><b>Device</b></td><td>${escapeHtml(deviceFull)}</td></tr>
+          <tr><td><b>Complaint</b></td><td>${escapeHtml(complaint)}</td></tr>
+          <tr><td><b>Diagnosis</b></td><td>${escapeHtml(diagnosis)}</td></tr>
+          <tr><td><b>Warranty</b></td><td>${escapeHtml(warrantyText)}</td></tr>
+          ${passwordType!=='none'?`<tr><td><b>Password</b></td><td>${escapeHtml(passwordType)} ${escapeHtml(passwordValue)}</td></tr>`:''}
+          <tr><td><b>Remarks</b></td><td>${escapeHtml(remarks)}</td></tr>
+        </table>
+
+        <!-- ===============================
+             DEVICE CHECKS (A4)
+        ================================ -->
+        ${deviceChecks.length ? `
+          <div style="margin-top:10px;font-weight:700">Device Checks</div>
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            ${deviceChecks.map(c => `
+              <tr>
+                <td style="width:70%">${escapeHtml(c.label)}</td>
+                <td>${escapeHtml(c.state.toUpperCase())}</td>
+              </tr>`).join('')}
+          </table>
+        ` : ''}
+
+        <!-- ===============================
+             ACCESSORIES (A4)
+        ================================ -->
+        ${accessories.length ? `
+          <div style="margin-top:10px;font-weight:700">Accessories</div>
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            ${accessories.map(a => `
+              <tr>
+                <td style="width:70%">${escapeHtml(a.label)}</td>
+                <td>${escapeHtml(a.state.toUpperCase())}</td>
+              </tr>`).join('')}
+          </table>
+        ` : ''}
+
+        <div style="margin-top:12px;float:right;max-width:260px">
+          <div style="display:flex;justify-content:space-between"><div><b>Service</b></div><div>₹${serviceCharge.toFixed(2)}</div></div>
+          <div style="display:flex;justify-content:space-between"><div><b>Paid</b></div><div>₹${paid.toFixed(2)}</div></div>
+          <div style="display:flex;justify-content:space-between"><div><b>Balance</b></div><div>₹${balance.toFixed(2)}</div></div>
+        </div><div style="clear:both"></div>
+
+        <div class="line"></div>
+        <div class="foot">Thank you for your business! Visit Again.</div>
+
+      </div></body></html>`;
+    }
+
+    // =============================
+    // THERMAL PRINT (58 / 80mm)
+    // =============================
+    else {
+      const width = printerType.includes('58') ? '58mm' : '80mm';
+      html = `<!doctype html><html><head><meta charset="utf-8">
+      <title>Job ${escapeHtml(jobNo)}</title>
+      ${sharedCSS}
+      <style>@page{size:${width} auto;margin:4mm;}body{width:${width};font-size:12px}</style>
+      </head><body>
+      <div style="padding:4px">
+
+        ${logo ? `<img class="logo" src="${logo}" alt="logo">` : ''}
+        <div class="center" style="font-weight:700">${escapeHtml(companyName)}</div>
+        ${fullAddress ? `<div class="center muted">${escapeHtml(fullAddress)}</div>` : ''}
+        ${phone ? `<div class="center muted">📞 ${escapeHtml(phone)}</div>` : ''}
+        ${gst ? `<div class="center muted">GSTIN: ${escapeHtml(gst)}</div>` : ''}
+        <div class="line"></div>
+
+        <div><b>Job No:</b> ${escapeHtml(jobNo)}</div>
+        <div><b>Date:</b> ${escapeHtml(new Date().toLocaleString())}</div>
+        <div><b>Customer:</b> ${escapeHtml(custName)} (${escapeHtml(custMobile)})</div>
+        <div><b>Address:</b> ${escapeHtml(custAddress)}</div>
+        <div class="line"></div>
+
+        <div><b>Device:</b> ${escapeHtml(deviceFull)}</div>
+        <div><b>Complaint:</b> ${escapeHtml(complaint)}</div>
+        <div><b>Diagnosis:</b> ${escapeHtml(diagnosis)}</div>
+        <div><b>Warranty:</b> ${escapeHtml(warrantyText)}</div>
+        ${passwordType!=='none'?`<div><b>Password:</b> ${escapeHtml(passwordType)} ${escapeHtml(passwordValue)}</div>`:''}
+        <div><b>Remarks:</b> ${escapeHtml(remarks)}</div>
+
+        <!-- DEVICE CHECKS -->
+        ${deviceChecks.length ? `
+          <div style="margin-top:8px"><b>Device Checks:</b></div>
+          ${deviceChecks.map(c => `<div>${escapeHtml(c.label)} : ${escapeHtml(c.state.toUpperCase())}</div>`).join('')}
+        ` : ''}
+
+        <!-- ACCESSORIES -->
+        ${accessories.length ? `
+          <div style="margin-top:8px"><b>Accessories:</b></div>
+          ${accessories.map(a => `<div>${escapeHtml(a.label)} : ${escapeHtml(a.state.toUpperCase())}</div>`).join('')}
+        ` : ''}
+
+        <div class="line"></div>
+        <div style="display:flex;justify-content:space-between"><div>Service</div><div>₹${serviceCharge.toFixed(2)}</div></div>
+        <div style="display:flex;justify-content:space-between"><div>Paid</div><div>₹${paid.toFixed(2)}</div></div>
+        <div style="display:flex;justify-content:space-between"><div>Balance</div><div>₹${balance.toFixed(2)}</div></div>
+        <div class="line"></div>
+
+        <div class="foot">Thank you for your business!</div>
+
+      </div></body></html>`;
+    }
+
+    printHtmlViaIframe(html);
+  }
+
+  const printBtn = $('printJob');
+  if(printBtn){
+    try { printBtn.removeEventListener && printBtn.removeEventListener('click', printServiceJob); } catch(e){}
+    printBtn.addEventListener('click', printServiceJob);
+  }
+  window.printServiceJob = printServiceJob;
+})();
+
+  // -----------------------
+  // -----------------------
+// WhatsApp share (service job)
+// -----------------------
+if ($('shareJob')) $('shareJob').addEventListener('click', () => {
+  const s = loadJSON(SETTINGS_KEY, {});
+  const jobNo = $('jobNoInput') ? $('jobNoInput').value.trim() : ''; // ✅ now reads from editable input
+  const custName = $('custName') ? $('custName').value.trim() : '-';
+  const custMobile = $('custMobile') ? $('custMobile').value.trim() : '';
+  const custAddress = $('custAddress') ? $('custAddress').value.trim() : '-';
+  const deviceType = $('deviceType') ? $('deviceType').value.trim() : '';
+  const deviceBrand = $('deviceBrand') ? $('deviceBrand').value.trim() : '';
+  const deviceModel = $('deviceModel') ? $('deviceModel').value.trim() : '';
+  const complaint = $('custComplaint') ? $('custComplaint').value.trim() : '';
+  const diagnosis = $('techDiagnosis') ? $('techDiagnosis').value.trim() : '';
+  const remarks = $('remarks') ? $('remarks').value.trim() : '';
+  const serviceCharge = Number($('serviceCharge') ? $('serviceCharge').value : 0) || 0;
+  const paid = Number($('paid') ? $('paid').value : 0) || 0;
+  const balance = Number($('balance') ? $('balance').value : (serviceCharge - paid)) || 0;
+  const warrantyText = document.querySelector('#warrantyBtns button.active')?.innerText || 'No warranty';
+  const date = new Date().toLocaleString();
+
+  if (!custMobile) { alert('Please enter customer mobile number.'); return; }
+
+  let msg = `*${s.companyName || 'Pandian Tech Service'}*%0A`;
+  msg += `🧾 *Service Job Sheet*%0A`;
+  msg += `Job No: ${jobNo || '—'}%0ADate: ${date}%0A`;
+  msg += `Customer: ${custName} (${custMobile})%0A`;
+  msg += `Address: ${custAddress}%0A%0A`;
+
+  msg += `🔧 *Device Details*%0A`;
+  msg += `${deviceType} ${deviceBrand} ${deviceModel}%0A`;
+  msg += `Complaint: ${complaint}%0A`;
+  msg += `Diagnosis: ${diagnosis}%0A`;
+  msg += `Warranty: ${warrantyText}%0A`;
+  if (remarks) msg += `Remarks: ${remarks}%0A`;
+  msg += `%0A💰 *Charges*%0AService: ₹${serviceCharge.toFixed(2)}%0A`;
+  msg += `Paid: ₹${paid.toFixed(2)}%0A`;
+  msg += `Balance: ₹${balance.toFixed(2)}%0A%0A`;
+  msg += `✅ Thank you for choosing *${s.companyName || 'Pandian Tech Service'}*!`;
+  // include checks
+const checks = dc_collectChecks('deviceCheckGrid');
+if (checks && checks.length) {
+  msg += `%0A*Device Checks*%0A`;
+  checks.forEach(c => {
+    msg += `${c.label} : ${ (c.state||'').toUpperCase() }%0A`;
+  });
+}
+
+// include accessories
+const accs = dc_collectChecks('accCheckGrid');
+if (accs && accs.length) {
+  msg += `%0A*Accessories*%0A`;
+  accs.forEach(a => {
+    msg += `${a.label} : ${ (a.state||'').toUpperCase() }%0A`;
+  });
+}
+
+
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const phone = custMobile.replace(/\D/g, '');
+  const waMobile = `https://wa.me/${phone}?text=${msg}`;
+  const waWeb = `https://web.whatsapp.com/send?phone=${phone}&text=${msg}`;
+  
+
+  if (isMobile) window.location.href = waMobile; else window.open(waWeb, '_blank');
+});
+
+
+  // -----------------------
+  // Clear form helper
+  // -----------------------
+  function clearForm(){
+    ['custName','custMobile','custAddress','deviceType','deviceBrand','deviceModel','custComplaint','techDiagnosis','serviceCharge','paid','balance','remarks','passwordValue'].forEach(id => {
+      const el = $(id); if(el) el.value = '';
+    });
+    document.querySelectorAll('#warrantyBtns button').forEach(b => b.classList.remove('active'));
+    selectedWarranty = null;
+    if($('passwordType')) $('passwordType').value = 'none';
+    updatePasswordPreview();
+    saveDraft();
+  }
+  if($('clearForm')) $('clearForm').addEventListener('click', ()=> { if(confirm('Clear form?')) { clearForm(); localStorage.removeItem(DRAFT_KEY); } });
+
+  // -----------------------
+  // Password preview & pattern modal integration
+  // -----------------------
+  function updatePasswordPreview(){
+    const type = $('passwordType') ? $('passwordType').value : 'none';
+    const val = $('passwordValue') ? $('passwordValue').value : '';
+    let text = 'Password: none';
+    if(type === 'text') text = 'Password (text): ' + (val || '(empty)');
+    else if(type === 'pin') text = 'PIN: ' + (val || '(empty)');
+    else if(type === 'pattern') text = 'Pattern: ' + (val ? '[' + val + ']' : '(not set)');
+    const pv = $('patternPreview');
+    if(pv) pv.innerText = text;
+    saveDraft();
+  }
+  if($('passwordType')) $('passwordType').addEventListener('change', e => { updatePasswordPreview(); if(e.target.value === 'pattern') openPatternModal(); });
+  if($('passwordValue')) $('passwordValue').addEventListener('input', updatePasswordPreview);
+
+  // -----------------------
+  // Live sync on focus and storage events
+  // -----------------------
+  window.addEventListener('focus', ()=> {
+    settings = loadJSON(SETTINGS_KEY, settings);
+    customers = loadJSON(CUSTOMERS_KEY, customers);
+    options = loadJSON(OPTIONS_KEY, options);
+    jobs = loadJSON(JOBS_KEY, jobs);
+    populateAll();
+    populatePayModes();
+    updateHeader();
+    calcBalance();
+    // do not overwrite user's live typing if there is draft
+  });
+
+  window.addEventListener('storage', (e) => {
+    try {
+      if(e.key === SETTINGS_KEY || e.key === 'companyLogo') {
+        settings = loadJSON(SETTINGS_KEY, settings);
+        populatePayModes();
+        updateHeader();
+      }
+      if(e.key === CUSTOMERS_KEY) {
+        customers = loadJSON(CUSTOMERS_KEY, customers);
+      }
+      if(e.key === OPTIONS_KEY) {
+        options = loadJSON(OPTIONS_KEY, options);
+        populateAll();
+      }
+      if(e.key === JOBS_KEY) {
+        jobs = loadJSON(JOBS_KEY, jobs);
+      }
+      // stockSyncEvent / other pages may write options/products etc. react to them if needed
+    } catch(err){ console.warn('storage event handler err', err); }
+  });
+
+  // -----------------------
+  // Pattern modal implementation (3x3 grid)
+  // -----------------------
+  // The implementation intentionally mirrors previous behavior: 3x3 dots, pointer events, preview, save to passwordValue.
+  (function(){
+    const patternOverlay = $('patternOverlay');
+    const patternGrid = $('patternGrid');
+    const patternCanvas = $('patternCanvas');
+    const patternModalPreview = $('patternModalPreview');
+    const patternClearBtn = $('patternClear');
+    const patternCancelBtn = $('patternCancel');
+    const patternSaveBtn = $('patternSave');
+    const setPatternBtn = $('setPatternBtn');
+
+    if(!patternGrid || !patternCanvas) {
+      // pattern UI not present: provide no-op but keep calls safe
+      window.openPatternModal = () => { alert('Pattern modal missing'); };
+      return;
+    }
+
+    // build 3x3 grid dots
+    const DOT_COUNT = 9;
+    const dots = [];
+    function buildPatternDots(){
+      patternGrid.innerHTML = '';
+      for(let i=1;i<=DOT_COUNT;i++){
+        const el = document.createElement('div');
+        el.className = 'pattern-dot';
+        el.setAttribute('data-index', i);
+        el.setAttribute('tabindex', '0');
+        el.innerHTML = `<span style="font-size:12px;opacity:0.7">${i}</span>`;
+        patternGrid.appendChild(el);
+      }
+    }
+    buildPatternDots();
+
+    // canvas sizing & dot centers
+    function resizePatternCanvas(){
+      const area = $('patternArea');
+      const canvas = patternCanvas;
+      if(!area || !canvas) return;
+      const rect = area.getBoundingClientRect();
+      canvas.width = Math.round(rect.width);
+      canvas.height = Math.round(rect.height);
+      updateDotCenters();
+      redrawLines();
+    }
+
+    function updateDotCenters(){
+      dots.length = 0;
+      Array.from(patternGrid.children).forEach((el, idx) => {
+        const r = el.getBoundingClientRect();
+        const parentR = patternGrid.getBoundingClientRect();
+        const cx = (r.left - parentR.left) + r.width/2;
+        const cy = (r.top - parentR.top) + r.height/2;
+        dots.push({ el, index: idx+1, cx, cy });
+      });
+    }
+
+    // drawing
+    let ctx = patternCanvas.getContext('2d');
+    if(ctx) { ctx.lineCap = 'round'; ctx.lineJoin = 'round'; }
+
+    function clearCanvas(){ if(!ctx) return; ctx.clearRect(0,0,patternCanvas.width,patternCanvas.height); }
+
+    let isDrawing = false;
+    let selected = [];
+    let lastPos = null;
+
+    function redrawLines(){
+      clearCanvas();
+      if(!ctx) return;
+      if(selected.length === 0) return;
+      ctx.strokeStyle = '#2563eb';
+      ctx.lineWidth = Math.max(4, Math.min(patternCanvas.width/80, 10));
+      ctx.beginPath();
+      selected.forEach((idx, i) => {
+        const d = dots.find(dd=>dd.index===idx);
+        if(!d) return;
+        const x = d.cx, y = d.cy;
+        if(i===0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+
+      if(isDrawing && lastPos && selected.length){
+        const lastIdx = selected[selected.length-1];
+        const d = dots.find(dd=>dd.index===lastIdx);
+        if(d){
+          ctx.beginPath();
+          ctx.moveTo(d.cx, d.cy);
+          ctx.lineTo(lastPos.x, lastPos.y);
+          ctx.strokeStyle = '#93c5fd';
+          ctx.lineWidth = Math.max(3, Math.min(patternCanvas.width/100, 8));
+          ctx.stroke();
+        }
+      }
+    }
+
+    function updateDotVisuals(){
+      dots.forEach(d => d.el.classList.toggle('active', selected.includes(d.index)));
+    }
+
+    function tryAddDotAtPoint(x, y){
+      const pgRect = patternGrid.getBoundingClientRect();
+      const localX = x - pgRect.left;
+      const localY = y - pgRect.top;
+      for(const d of dots){
+        const dx = localX - d.cx, dy = localY - d.cy;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        const dotRect = d.el.getBoundingClientRect();
+        const r = Math.min(dotRect.width, dotRect.height)/1.8;
+        if(dist <= r){
+          if(!selected.includes(d.index)){
+            selected.push(d.index);
+            updateDotVisuals();
+            redrawLines();
+            updatePatternModalPreview();
+          }
+          return d.index;
+        }
+      }
+      return null;
+    }
+
+    // pointer handlers
+    function onPointerDown(e){
+      e.preventDefault();
+      isDrawing = true;
+      selected = [];
+      lastPos = null;
+      patternCanvas.setPointerCapture && patternCanvas.setPointerCapture(e.pointerId);
+      tryAddDotAtPoint(e.clientX, e.clientY);
+      lastPos = { x: e.clientX - patternGrid.getBoundingClientRect().left, y: e.clientY - patternGrid.getBoundingClientRect().top };
+      redrawLines();
+    }
+    function onPointerMove(e){
+      if(!isDrawing) return;
+      lastPos = { x: e.clientX - patternGrid.getBoundingClientRect().left, y: e.clientY - patternGrid.getBoundingClientRect().top };
+      tryAddDotAtPoint(e.clientX, e.clientY);
+      redrawLines();
+    }
+    function onPointerUp(e){
+      if(!isDrawing) return;
+      isDrawing = false;
+      lastPos = null;
+      redrawLines();
+      updateDotVisuals();
+      updatePatternModalPreview();
+    }
+
+    function attachPointerHandlers(){
+      patternCanvas.addEventListener('pointerdown', onPointerDown);
+      patternCanvas.addEventListener('pointermove', onPointerMove);
+      window.addEventListener('pointerup', onPointerUp);
+      patternGrid.querySelectorAll('.pattern-dot').forEach(dot => {
+        dot.addEventListener('pointerdown', (e)=>{ e.preventDefault(); onPointerDown(e); });
+        dot.addEventListener('pointerenter', (e)=>{ if(e.buttons) tryAddDotAtPoint(e.clientX, e.clientY); });
+      });
+    }
+
+    attachPointerHandlers();
+
+    function updatePatternModalPreview(){
+      if(selected.length === 0) patternModalPreview.innerText = 'Sequence: —';
+      else patternModalPreview.innerText = 'Sequence: ' + selected.join('-');
+    }
+
+    function openPatternModal(){
+      if(!patternOverlay) return;
+      patternOverlay.classList.add('active');
+      patternOverlay.setAttribute('aria-hidden','false');
+      selected = [];
+      updatePatternModalPreview();
+      setTimeout(()=>{ resizePatternCanvas(); updateDotVisuals(); }, 60);
+      document.body.style.overflow = 'hidden';
+    }
+    function closePatternModal(){
+      if(!patternOverlay) return;
+      patternOverlay.classList.remove('active');
+      patternOverlay.setAttribute('aria-hidden','true');
+      document.body.style.overflow = '';
+      redrawLines();
+    }
+
+    if(patternClearBtn) patternClearBtn.addEventListener('click', ()=> { selected = []; updatePatternModalPreview(); updateDotVisuals(); redrawLines(); });
+    if(patternSaveBtn) patternSaveBtn.addEventListener('click', ()=> {
+      if(selected.length < 4){
+        if(!confirm('Pattern is short. Save anyway? (minimum recommended is 4)')) return;
+      }
+      const seq = selected.join('-');
+      if($('passwordType')) $('passwordType').value = 'pattern';
+      if($('passwordValue')) $('passwordValue').value = seq;
+      updatePasswordPreview();
+      saveDraft();
+      closePatternModal();
+    });
+    if(patternCancelBtn) patternCancelBtn.addEventListener('click', closePatternModal);
+    if(setPatternBtn) setPatternBtn.addEventListener('click', openPatternModal);
+    if(patternOverlay) patternOverlay.addEventListener('click', (e)=>{ if(e.target === patternOverlay) closePatternModal(); });
+
+    window.addEventListener('resize', () => { resizePatternCanvas(); });
+
+    // ensure canvas sized
+    setTimeout(()=>{ resizePatternCanvas(); }, 120);
+
+    // expose openPatternModal globally so other code can call it
+    window.openPatternModal = openPatternModal;
+  })();
+
+  // -----------------------
+  // Autosave: every 60s persist options/customers/jobs/settings/draft plus small visual feedback (no toast required here)
+  // -----------------------
+  function autosaveAll(){
+    try {
+      saveJSON(OPTIONS_KEY, options);
+      saveJSON(CUSTOMERS_KEY, customers);
+      saveJSON(JOBS_KEY, jobs);
+      saveJSON(SETTINGS_KEY, settings);
+      // attempt small backup
+      const stamp = new Date().toISOString().replace(/[:.]/g,'-');
+      try { localStorage.setItem('backup_' + stamp, JSON.stringify({ options, customers, jobs, settings })); } catch(e){}
+    } catch(e){ console.warn('Autosave failed', e); }
+  }
+  const AUTOSAVE_INTERVAL_MS = 60 * 1000;
+  setInterval(autosaveAll, AUTOSAVE_INTERVAL_MS);
+  window.addEventListener('beforeunload', autosaveAll);
+
+  // -----------------------
+  // Initialization
+  // -----------------------
+  function init(){
+    settings = loadJSON(SETTINGS_KEY, settings);
+    customers = loadJSON(CUSTOMERS_KEY, customers);
+    options = loadJSON(OPTIONS_KEY, options);
+    jobs = loadJSON(JOBS_KEY, jobs);
+    populateAll();
+    populatePayModes();
+    updateHeader();
+    calcBalance();
+    loadDraft(); // load saved draft if present
+  }
+  init();
+
+  // -----------------------
+  // Expose API for debugging / cross-page usage
+  // -----------------------
+  window.PandianService = {
+    loadJSON, saveJSON, options, jobs, customers, saveDraft,
+    reloadState: () => { settings = loadJSON(SETTINGS_KEY, settings); customers = loadJSON(CUSTOMERS_KEY, customers); options = loadJSON(OPTIONS_KEY, options); jobs = loadJSON(JOBS_KEY, jobs); populateAll(); populatePayModes(); updateHeader(); }
+  };
+
+  // end of main IIFE
+})();
+
+/* ============================
+   🔢 AUTO JOB NUMBER GENERATOR
+   ============================ */
+(() => {
+  const SETTINGS_KEY = 'companyDetails';
+  const JOBS_KEY = 'jobs';
+
+  // Load settings & jobs
+  const settings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+  const startJobNo = parseInt(settings.startJobNo || 500);
+  const jobs = JSON.parse(localStorage.getItem(JOBS_KEY) || '[]');
+
+  // Find the highest existing job number
+  const maxExisting = jobs.length ? Math.max(...jobs.map(j => Number(j.jobNo) || 0)) : 0;
+
+  // Determine the next job number
+  const nextJobNo = maxExisting >= startJobNo ? maxExisting + 1 : startJobNo;
+
+  // Expose to global scope (optional, for other scripts)
+  window.nextJobNumber = nextJobNo;
+
+  // Auto-assign when adding new job
+  window.getNextJobNumber = function() {
+    const updatedJobs = JSON.parse(localStorage.getItem(JOBS_KEY) || '[]');
+    const latestMax = updatedJobs.length ? Math.max(...updatedJobs.map(j => Number(j.jobNo) || 0)) : 0;
+    const settings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+    const start = parseInt(settings.startJobNo || 500);
+    return latestMax >= start ? latestMax + 1 : start;
+  };
+
+  console.log('✅ Job Number System Ready — Next Job No:', nextJobNo);
+})();
+window.addEventListener('storage', (e) => {
+  if (e.key === 'companyDetails') {
+    settings = loadJSON(SETTINGS_KEY, settings);
+    populatePayModes();
+    updateHeader();
+  }
+});
+/* ===== Device Check helpers (dc_*) ===== */
+function dc_selectOpt(el){
+  const group = el.parentElement.querySelectorAll('.dc-opt-btn');
+  group.forEach(b => b.classList.remove('active-on','active-off','active-na'));
+  const type = el.dataset.type;
+  if(type === 'on') el.classList.add('active-on');
+  if(type === 'off') el.classList.add('active-off');
+  if(type === 'na') el.classList.add('active-na');
+  // autosave draft when user selects
+  try { saveDraft(); } catch(e){ /* ignore if not available */ }
+}
+
+function dc_addBox(){
+  const div = document.createElement('div');
+  div.className = 'device-check-box';
+  div.innerHTML = `
+    <input type="text" class="device-check-label" value="New Item">
+    <div class="device-check-options">
+      <span class="dc-opt-btn" data-type="on" onclick="dc_selectOpt(this)">ON</span>
+      <span class="dc-opt-btn" data-type="off" onclick="dc_selectOpt(this)">OFF</span>
+      <span class="dc-opt-btn" data-type="na" onclick="dc_selectOpt(this)">N/A</span>
+    </div>`;
+  document.getElementById('deviceCheckGrid').appendChild(div);
+  try { saveDraft(); } catch(e){}
+}
+
+function dc_addAccessory(){
+  const div = document.createElement('div');
+  div.className = 'device-check-box';
+  div.innerHTML = `
+    <input type="text" class="device-check-label" value="New Accessory">
+    <div class="device-check-options">
+      <span class="dc-opt-btn" data-type="on" onclick="dc_selectOpt(this)">ON</span>
+      <span class="dc-opt-btn" data-type="off" onclick="dc_selectOpt(this)">OFF</span>
+      <span class="dc-opt-btn" data-type="na" onclick="dc_selectOpt(this)">N/A</span>
+    </div>`;
+  document.getElementById('accCheckGrid').appendChild(div);
+  try { saveDraft(); } catch(e){}
+}
+
+/* ===== Collect current device-check data ===== */
+function dc_collectChecks(gridId){
+  const grid = document.getElementById(gridId);
+  if(!grid) return [];
+  const boxes = Array.from(grid.querySelectorAll('.device-check-box'));
+  return boxes.map(b => {
+    const label = (b.querySelector('.device-check-label')||{value:''}).value.trim();
+    const active = Array.from(b.querySelectorAll('.dc-opt-btn')).find(x => x.classList.contains('active-on') || x.classList.contains('active-off') || x.classList.contains('active-na'));
+    let state = 'na';
+    if(active){
+      if(active.classList.contains('active-on')) state = 'on';
+      else if(active.classList.contains('active-off')) state = 'off';
+      else if(active.classList.contains('active-na')) state = 'na';
+    }
+    return { label, state };
+  });
+}
+
+/* ===== Utilities to load existing data into UI (used by loadDraft / job load) ===== */
+function dc_renderFromData(gridId, dataArray){
+  const grid = document.getElementById(gridId);
+  if(!grid) return;
+  grid.innerHTML = ''; // replace existing
+  (dataArray || []).forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'device-check-box';
+    div.innerHTML = `
+      <input type="text" class="device-check-label" value="${(item.label||'').replace(/"/g,'&quot;')}">
+      <div class="device-check-options">
+        <span class="dc-opt-btn" data-type="on" onclick="dc_selectOpt(this)">ON</span>
+        <span class="dc-opt-btn" data-type="off" onclick="dc_selectOpt(this)">OFF</span>
+        <span class="dc-opt-btn" data-type="na" onclick="dc_selectOpt(this)">N/A</span>
+      </div>`;
+    grid.appendChild(div);
+    // set active class
+    const last = grid.lastElementChild;
+    const btn = last.querySelector(`.dc-opt-btn[data-type="${item.state || 'na'}"]`);
+    if(btn) btn.classList.add(item.state === 'on' ? 'active-on' : item.state === 'off' ? 'active-off' : 'active-na');
+  });
+}
+
+
+</script>
+
+</body>
+</html>

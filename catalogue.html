@@ -1,0 +1,894 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Catalogue — Pandian Tech Service</title>
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg:#f8f9fa;
+      --card:#ffffff;
+      --muted:#6b7280;
+      --text:#111827;
+      --accent:#374151;
+      --accent-2:#e6e6e6;
+      --active:#eef2ff;
+    }
+    *{box-sizing:border-box}
+    body{
+      font-family:'Quicksand',system-ui,Segoe UI,Arial;
+      margin:0;background:var(--bg);color:var(--text);
+    }
+
+    .wrap{max-width:1100px;margin:18px auto;padding:16px}
+
+    h1{margin:0;font-size:18px}
+    .lead{color:var(--muted);font-size:13px;margin-top:4px}
+
+    .toolbar{display:flex;gap:8px;align-items:center;margin-top:16px}
+    .search{flex:1}
+    input[type=search]{width:100%;padding:10px;border-radius:8px;border:1px solid var(--accent-2)}
+    button{background:#111827;color:#fff;border:0;padding:10px 12px;border-radius:8px;cursor:pointer}
+    button.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent-2)}
+    .grid{display:grid;grid-template-columns:280px 1fr;gap:16px;margin-top:18px}
+    @media(max-width:880px){.grid{grid-template-columns:1fr}}
+    .card{background:var(--card);padding:14px;border-radius:10px;box-shadow:0 6px 18px rgba(16,24,40,0.04)}
+    .left{display:flex;flex-direction:column;gap:12px}
+    .cat-list button {
+      display:block;
+      width:100%;
+      text-align:left;
+      padding:8px;
+      border-radius:8px;
+      border:1px solid #f1f1f1;
+      background:transparent;
+      color:#6d28d9;
+      font-weight:600;
+      transition:color 0.3s ease;
+    }
+    .cat-list button:hover { color:#111827; }
+    .cat-list button.active { color:#dc2626; border-color:#dc2626; }
+
+    .product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+    .product{background:#fff;border-radius:10px;padding:10px;border:1px solid #f1f1f1;display:flex;flex-direction:column}
+    .product .imgwrap{height:120px;display:flex;align-items:center;justify-content:center;background:#fafafa;border-radius:6px;margin-bottom:8px}
+    .product img{max-width:100%;max-height:110px;object-fit:contain}
+    .p-title{font-weight:600;margin:6px 0}
+    .p-meta{font-size:13px;color:var(--muted)}
+    .p-actions{display:flex;gap:8px;margin-top:auto;flex-wrap:wrap}
+
+    /* modal */
+    .modal{position:fixed;inset:0;background:rgba(2,6,23,0.45);display:none;align-items:center;justify-content:center;padding:18px;z-index:100}
+    .modal.open{display:flex}
+    .modal-card{background:#fff;border-radius:10px;max-width:760px;width:100%;padding:16px}
+    .form-grid{display:grid;grid-template-columns:1fr 180px;gap:12px}
+    @media(max-width:880px){.form-grid{grid-template-columns:1fr}}
+    label{font-size:13px;font-weight:600;margin-bottom:6px;display:block}
+    input,select,textarea{width:100%;padding:10px;border-radius:8px;border:1px solid #e6e6e6}
+    .ksmall{font-size:13px;color:var(--muted)}
+    .small-btn{padding:6px 8px;font-size:13px}
+
+    #scanModal .modal-card{max-width:480px;text-align:center}
+    #reader{width:100%;height:300px;border-radius:8px;overflow:hidden}
+
+    .cat-controls{display:flex;gap:8px;align-items:center;margin-top:8px}
+    .cat-controls input{flex:1;padding:8px;border-radius:8px;border:1px solid var(--accent-2)}
+    .cat-controls button{padding:8px 10px;border-radius:8px}
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 22px;
+      background: #111827;
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 8px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .25s ease, transform .25s ease;
+      z-index: 20000;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(-6px); pointer-events: auto; }
+  </style>
+</head>
+<body>
+
+  <div class="wrap">
+    <div class="toolbar">
+      <div class="search"><input id="q" type="search" placeholder="Search product or barcode..."></div>
+      <button id="addBtn">+ Add Product</button>
+      <button id="exportBtn" class="ghost">Export JSON</button>
+    </div>
+
+    <div class="grid">
+      <div class="left card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <strong>Categories</strong>
+          <div><button id="showAll" class="ghost small-btn">All</button></div>
+        </div>
+
+        <div class="cat-list" id="catList" style="margin-top:8px"></div>
+
+        <div class="cat-controls">
+          <select id="categorySelect" style="width:50%;"></select>
+          <button id="deleteCategoryBtn" class="ghost small-btn">Delete Selected</button>
+        </div>
+
+        <div style="margin-top:8px;display:flex;gap:8px">
+          <input id="addCategoryInput" placeholder="Add new category">
+          <button id="addCategoryBtn" class="ghost small-btn">Add</button>
+        </div>
+
+        <hr>
+        <div>
+          <strong>Quick actions</strong>
+          <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+            <button id="bulkBarcode" class="ghost small-btn">Download All Barcodes</button>
+            <button id="importBtn" class="ghost small-btn">Import JSON</button>
+            <input id="fileImport" type="file" accept="application/json" style="display:none">
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div id="productList" class="product-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- product modal -->
+  <div class="modal" id="modal">
+    <div class="modal-card">
+      <h3 id="modalTitle">Add Product</h3>
+      <div style="margin-top:8px" class="form-grid">
+        <div>
+          <div class="field"><label>Product Name</label><input id="pname"></div>
+
+          <div class="field">
+            <label>Category</label>
+
+            <!-- Hidden legacy input kept for function compatibility -->
+            <input id="pcat" type="hidden">
+
+            <!-- New select for UI -->
+            <select id="pcatSelect">
+              <option value="">-- Select Category --</option>
+            </select>
+
+            <!-- New-category UI (hidden until user chooses to add) -->
+            <div id="newCategoryWrap" style="display:none;margin-top:8px;">
+              <input id="pcatNew" placeholder="Enter new category name">
+              <button id="addNewCategoryBtn" class="ghost small-btn" type="button">Add</button>
+            </div>
+          </div>
+
+          <div class="field"><label>Billing Price (₹)</label><input id="pprice" type="number"></div>
+          <div class="field"><label>Purchase Price (₹)</label><input id="ppurchase" type="number"></div>
+          <div class="field"><label>Stock Quantity</label><input id="pstock" type="number" value="1"></div>
+
+          <div class="field">
+            <label>Barcode (leave empty to auto-generate)</label>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input id="pbarcode" style="flex:1">
+              <button id="scanBarcodeBtn" type="button" class="ghost small-btn">📷</button>
+            </div>
+          </div>
+
+          <div class="field"><label>Image (optional)</label><input id="pimg" type="file" accept="image/*"></div>
+        </div>
+
+        <div>
+          <div style="border:1px dashed var(--accent-2);padding:12px;border-radius:8px;text-align:center">
+            <div class="imgwrap">
+              <img id="previewImg" src="" style="max-height:110px;max-width:100%">
+            </div>
+            <div style="margin-top:8px">
+              <label class="ksmall">Barcode preview</label>
+              <div id="barcodeWrap" style="margin-top:8px"></div>
+            </div>
+          </div>
+          <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end">
+            <button id="saveProduct">Save</button>
+            <button id="cancelProduct" class="ghost">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- barcode scanner modal -->
+  <div id="scanModal" class="modal" aria-hidden="true">
+    <div class="modal-card">
+      <h3>Scan Barcode</h3>
+      <div id="reader"></div>
+      <div style="margin-top:10px;text-align:right;">
+        <button id="closeScan" class="ghost">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- toast -->
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <!-- external libs -->
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <script>
+  (function(){
+    const $ = id => document.getElementById(id);
+    const PRODUCTS_KEY = 'products';
+    const CATEGORIES_KEY = 'categories';
+    const SETTINGS_KEY = 'companyDetails';
+    let products = JSON.parse(localStorage.getItem(PRODUCTS_KEY) || '[]');
+    let categories = JSON.parse(localStorage.getItem(CATEGORIES_KEY) || '[]');
+    let selectedCategory = null;
+
+    const toastEl = $('toast');
+    function showToast(msg){
+      if(!toastEl) return;
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      clearTimeout(toastEl._t);
+      toastEl._t = setTimeout(()=>{ toastEl.classList.remove('show'); }, 2000);
+    }
+
+    // Company name dynamic in header (kept for compatibility, safe no-op when header removed)
+    function updateCompanyTitle(){
+      try{
+        const cfg = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+        const name = cfg.companyName || 'Pandian Tech Service';
+        const el = document.getElementById('companyTitle');
+        if(el) el.innerText = name;
+      }catch(e){}
+    }
+    updateCompanyTitle();
+    window.addEventListener('storage', ()=> updateCompanyTitle());
+    window.addEventListener('focus', ()=> updateCompanyTitle());
+
+    // If categories empty, derive from products
+    function ensureCategoriesFromProducts(){
+      const catSet = new Set(categories || []);
+      products.forEach(p => { if(p.category) catSet.add(p.category); });
+      categories = Array.from(catSet);
+      saveCategories(false);
+    }
+
+    function saveCategories(updateUi=true){ localStorage.setItem(CATEGORIES_KEY, JSON.stringify(categories)); if(updateUi) { renderCategories(); populateCategorySelect(); } }
+    function saveProducts(){ localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products)); render(); }
+
+    function nextBarcode(){
+      const nums = products.map(p=>p.barcode)
+        .filter(Boolean)
+        .map(b=>{ const m = String(b).match(/PTS0*(\d+)/i); return m ? parseInt(m[1],10) : 0; });
+      const next = (nums.length?Math.max(...nums)+1:1);
+      return 'PTS'+String(next).padStart(4,'0');
+    }
+
+    // render product grid with both search q and selectedCategory applied
+    function render(){
+      ensureCategoriesFromProducts();
+      const list = $('productList'); list.innerHTML='';
+      const q = ($('q').value || '').toLowerCase().trim();
+
+      const filtered = products.filter(p=>{
+        if(selectedCategory && selectedCategory !== 'All' && (p.category || 'Uncategorized') !== selectedCategory) return false;
+        if(!q) return true;
+        return (p.name||'').toLowerCase().includes(q) || (p.barcode||'').toLowerCase().includes(q) || (p.category||'').toLowerCase().includes(q);
+      });
+
+      if(!filtered.length){
+        list.innerHTML = '<div style="padding:20px;color:var(--muted)">No products found.</div>';
+        return;
+      }
+
+      filtered.forEach(p=>{
+        const div = document.createElement('div'); div.className='product';
+        div.innerHTML = `
+          <div class="imgwrap"><img src="${p.image||''}" onerror="this.style.display='none'"></div>
+          <div class="p-title">${escapeHtml(p.name)}</div>
+          <div class="p-meta">₹ ${p.price} • Stock: ${p.stock}</div>
+          <div class="p-meta">Category: ${escapeHtml(p.category||'Uncategorized')}</div>
+          <div class="p-meta">Barcode: ${escapeHtml(p.barcode||'')}</div>
+          <div class="p-actions">
+            <button class="ghost small-btn" onclick="editProduct('${p.id}')">Edit</button>
+            <button class="ghost small-btn" onclick="downloadBarcode('${p.id}')">Download</button>
+            <button class="ghost small-btn" onclick="deleteProduct('${p.id}')">Delete</button>
+          </div>`;
+        list.appendChild(div);
+      });
+      renderCategories(categories);
+    }
+
+    function renderCategories(cats){
+      const el = $('catList'); el.innerHTML='';
+      const sorted = (cats||[]).slice().sort((a,b)=>a.localeCompare(b));
+      sorted.forEach(c=>{
+        const b = document.createElement('button');
+        b.textContent = c;
+        b.className = (selectedCategory===c) ? 'active' : '';
+        b.onclick = ()=>{ selectedCategory = c; $('q').value = ''; highlightSelectedCategory(); render(); populateCategorySelect(); };
+        el.appendChild(b);
+      });
+    }
+
+    function highlightSelectedCategory(){
+      document.querySelectorAll('.cat-list button').forEach(btn=>{
+        btn.classList.toggle('active', btn.textContent === selectedCategory);
+      });
+    }
+
+    // populate both selects: left-side delete select and modal pcatSelect
+    function populateCategorySelect(){
+      const sel = $('categorySelect'); sel.innerHTML = '';
+      const modalSel = $('pcatSelect'); modalSel.innerHTML = '';
+      const defaultOpt = document.createElement('option'); defaultOpt.value = ''; defaultOpt.text = '-- Select category --'; sel.appendChild(defaultOpt);
+      const defaultOpt2 = document.createElement('option'); defaultOpt2.value = ''; defaultOpt2.text = '-- Select Category --'; modalSel.appendChild(defaultOpt2);
+
+      const arr = (categories||[]).slice().sort((a,b)=>a.localeCompare(b));
+      arr.forEach(c=>{
+        const o = document.createElement('option'); o.value = c; o.text = c;
+        if(c === selectedCategory) o.selected = true;
+        sel.appendChild(o);
+
+        const o2 = document.createElement('option'); o2.value = c; o2.text = c;
+        modalSel.appendChild(o2);
+      });
+
+      // add an "Add new" option at end of modal select
+      const addNewOption = document.createElement('option');
+      addNewOption.value = '__add_new__';
+      addNewOption.text = '-- Add new category... --';
+      modalSel.appendChild(addNewOption);
+    }
+
+    // UI event wiring
+    $('addBtn').addEventListener('click', ()=> openModal());
+    $('cancelProduct').addEventListener('click', ()=> closeModal());
+    $('q').addEventListener('input', ()=> { selectedCategory = null; highlightSelectedCategory(); render(); });
+
+    $('showAll').addEventListener('click', ()=>{ selectedCategory = null; $('q').value=''; highlightSelectedCategory(); render(); populateCategorySelect(); });
+
+    // category add/delete buttons
+    $('addCategoryBtn').addEventListener('click', ()=>{
+      const v = ($('addCategoryInput').value||'').trim();
+      if(!v) return alert('Enter category name');
+      if(!categories.includes(v)){
+        categories.push(v);
+        saveCategories();
+        $('addCategoryInput').value='';
+        render();
+      } else alert('Category exists');
+    });
+
+    $('deleteCategoryBtn').addEventListener('click', ()=>{
+      const sel = $('categorySelect').value;
+      if(!sel) return alert('Select a category to delete');
+      if(!confirm(`Delete category "${sel}" and ALL its products? This cannot be undone.`)) return;
+      // Remove category and associated products
+      categories = (categories||[]).filter(c=>c!==sel);
+      products = products.filter(p=> (p.category||'Uncategorized') !== sel);
+      selectedCategory = null;
+      saveCategories(); saveProducts();
+      populateCategorySelect(); render();
+    });
+
+    // modal open/close, fill/clear
+    const modal = $('modal');
+    function openModal(p){
+      modal.classList.add('open');
+      // ensure category selects up-to-date
+      populateCategorySelect();
+      if(p){ fillForm(p); $('modalTitle').innerText='Edit Product'; }
+      else { clearForm(); $('modalTitle').innerText='Add Product'; }
+    }
+    function closeModal(){ modal.classList.remove('open'); }
+
+    function clearForm(){
+      $('pname').value=''; $('pcat').value=''; if($('pcatSelect')) $('pcatSelect').value = '';
+      $('pprice').value=''; $('ppurchase').value='';
+      $('pstock').value=1; $('pbarcode').value=''; $('previewImg').src=''; $('barcodeWrap').innerHTML='';
+      $('pimg').value = '';
+      $('saveProduct').dataset.editId = '';
+      // hide add-new UI
+      if($('newCategoryWrap')) $('newCategoryWrap').style.display = 'none';
+      if($('pcatNew')) $('pcatNew').value = '';
+    }
+    function fillForm(p){
+      $('pname').value = p.name || '';
+      // ensure category selects updated then set values
+      populateCategorySelect();
+      $('pcat').value = p.category || '';
+      if($('pcatSelect')) $('pcatSelect').value = p.category || '';
+      $('pprice').value = p.price || 0;
+      $('ppurchase').value = p.purchase || 0;
+      $('pstock').value = p.stock || 0;
+      $('pbarcode').value = p.barcode || '';
+      $('previewImg').src = p.image || '';
+      renderBarcode(p.barcode || '');
+      $('saveProduct').dataset.editId = p.id;
+    }
+
+    // Keep modal pcatSelect <-> hidden pcat in sync
+    function wireCategoryModalSync(){
+      const sel = $('pcatSelect');
+      const hidden = $('pcat');
+      const wrap = $('newCategoryWrap');
+      const newInput = $('pcatNew');
+      const addNewBtn = $('addNewCategoryBtn');
+
+      if(!sel || !hidden) return;
+
+      sel.addEventListener('change', ()=>{
+        const val = sel.value;
+        if(val === '__add_new__'){
+          if(wrap) wrap.style.display = 'block';
+          if(newInput) newInput.focus();
+          // clear hidden until user adds
+          hidden.value = '';
+        } else {
+          if(wrap) wrap.style.display = 'none';
+          hidden.value = val || '';
+        }
+      });
+
+      if(addNewBtn){
+        addNewBtn.addEventListener('click', ()=>{
+          const nv = (newInput.value||'').trim();
+          if(!nv) return alert('Enter category name');
+          if(!categories.includes(nv)){
+            categories.push(nv);
+            saveCategories();
+            // select the new category in the modal select
+            populateCategorySelect();
+            if(sel) sel.value = nv;
+            if(hidden) hidden.value = nv;
+            // hide new input
+            if(wrap) wrap.style.display = 'none';
+            if(newInput) newInput.value = '';
+            showToast(`New category "${nv}" added`);
+          } else {
+            // already exists: just select it
+            populateCategorySelect();
+            if(sel) sel.value = nv;
+            if(hidden) hidden.value = nv;
+            if(wrap) wrap.style.display = 'none';
+            showToast(`Category "${nv}" already exists`);
+          }
+        });
+      }
+
+      // allow Enter in pcatNew to add quickly
+      if(newInput){
+        newInput.addEventListener('keydown', (e)=>{
+          if(e.key === 'Enter'){ e.preventDefault(); if(addNewBtn) addNewBtn.click(); }
+        });
+      }
+    }
+
+    // image preview
+    $('pimg').addEventListener('change', e=>{
+      const f = e.target.files[0]; if(!f) return;
+      const r = new FileReader(); r.onload = ()=>{ $('previewImg').src=r.result; }; r.readAsDataURL(f);
+    });
+
+    // render barcode preview
+    function renderBarcode(code){
+      const wrap = $('barcodeWrap'); wrap.innerHTML='';
+      if(!code) return;
+      const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+      wrap.appendChild(svg);
+      try{ JsBarcode(svg, code, {format:'CODE128',displayValue:true,height:50}); }catch(e){}
+    }
+
+    // save product (add or edit)
+    $('saveProduct').addEventListener('click', ()=>{
+      const name = $('pname').value.trim();
+      if(!name){ alert('Product name required'); return; }
+      // use hidden pcat (keeps original code paths)
+      let catVal = ($('pcat').value || '').trim();
+      if(!catVal && $('pcatSelect') && $('pcatSelect').value && $('pcatSelect').value !== '__add_new__'){
+        catVal = $('pcatSelect').value;
+      }
+      if(!catVal) catVal = 'Uncategorized';
+
+      $('pcat').value = catVal; // ensure hidden input populated for legacy usage
+
+      let barcode = $('pbarcode').value.trim();
+      if(!barcode) barcode = nextBarcode();
+
+      const editId = $('saveProduct').dataset.editId;
+      if(editId){
+        // update existing product
+        const p = products.find(x=>x.id === editId);
+        if(!p) return alert('Product not found');
+        p.name = name;
+        p.category = catVal;
+        p.price = Number($('pprice').value) || 0;
+        p.purchase = Number($('ppurchase').value) || 0;
+        p.stock = Number($('pstock').value) || 0;
+        p.barcode = barcode;
+        p.image = $('previewImg').src || '';
+      } else {
+        const obj = {
+          id:'prod_'+Date.now(),
+          name:name,
+          category: catVal,
+          price:Number($('pprice').value)||0,
+          purchase:Number($('ppurchase').value)||0,
+          stock:Number($('pstock').value)||0,
+          barcode:barcode,
+          image:$('previewImg').src||''
+        };
+        products.push(obj);
+      }
+
+      // ensure category exists
+      const newCat = (catVal||'').trim();
+      if(newCat && !categories.includes(newCat)) {
+        categories.push(newCat);
+        showToast(`New category "${newCat}" added`);
+      }
+
+      saveCategories();
+      saveProducts();
+      closeModal();
+    });
+
+    // product edit/delete/download functions
+    window.editProduct = id=>{
+      const p = products.find(x=>x.id===id); if(!p) return alert('Not found'); openModal(p);
+    };
+    window.deleteProduct = id=>{
+      if(!confirm('Delete product?')) return;
+      products = products.filter(x=>x.id !== id);
+      saveProducts();
+    };
+
+    window.downloadBarcode = id=>{
+      const p = products.find(x=>x.id===id);
+      if(!p) return alert('Not found');
+      const canvas=document.createElement('canvas');
+      JsBarcode(canvas,p.barcode,{format:'CODE128',displayValue:true,height:60,width:2});
+      const a=document.createElement('a');
+      a.href=canvas.toDataURL('image/png');
+      a.download='Barcode_'+p.barcode+'.png';
+      a.click();
+    };
+
+    // bulk download barcodes
+    $('bulkBarcode').addEventListener('click', ()=>{
+      if(!products.length) return alert('No products');
+      products.forEach(p=>{
+        const canvas=document.createElement('canvas');
+        JsBarcode(canvas,p.barcode,{format:'CODE128',displayValue:true,height:60,width:2});
+        const a=document.createElement('a');
+        a.href=canvas.toDataURL('image/png');
+        a.download='Barcode_'+p.barcode+'.png';
+        a.click();
+      });
+    });
+
+    // export/import
+    $('exportBtn').addEventListener('click', ()=>{
+      const blob=new Blob([JSON.stringify(products,null,2)],{type:'application/json'});
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob);
+      a.download='products.json';
+      a.click();
+    });
+
+    $('importBtn').addEventListener('click', ()=> $('fileImport').click());
+    $('fileImport').addEventListener('change', e=>{
+      const f=e.target.files[0]; if(!f) return;
+      const r=new FileReader();
+      r.onload=()=>{
+        try{
+          const arr=JSON.parse(r.result);
+          if(Array.isArray(arr)){
+            // normalize imported products and add unique ids if missing
+            const added = [];
+            arr.forEach(item=>{
+              const obj = Object.assign({ id: 'prod_'+Date.now()+Math.floor(Math.random()*1000) }, item);
+              if(!obj.barcode) obj.barcode = nextBarcode();
+              products.push(obj);
+              added.push(obj);
+            });
+            saveProducts();
+            ensureCategoriesFromProducts();
+            alert('Imported '+added.length+' products');
+          } else alert('Invalid file format (expecting array)');
+        } catch(err){ alert('Invalid file'); }
+      };
+      r.readAsText(f);
+    });
+/* ============================================================
+   UNIVERSAL BARCODE SCANNER FOR CATALOGUE PAGE
+   ============================================================ */
+
+let CATSCAN = {
+  scanner: null,
+  cams: [],
+  index: 0,
+  track: null,
+  autofocusTimer: null,
+  lastScan: 0,
+  debounce: 1200,
+};
+
+/* -------------------------------------
+   Trigger from Scan Button 📷
+-------------------------------------- */
+document.getElementById("scanBarcodeBtn").onclick = () => {
+  catalogueOpenScanner(code => {
+    document.getElementById("pbarcode").value = code;
+    // update barcode preview
+    const wrap = document.getElementById("barcodeWrap");
+    wrap.innerHTML = "";
+    const svg = document.createElementNS("http://www.w3.org/2000/svg","svg");
+    wrap.appendChild(svg);
+    try { JsBarcode(svg, code, { format:"CODE128", displayValue:true, height:50 }); } catch(e){}
+
+    showToast("Barcode scanned: " + code);
+  });
+};
+
+/* -------------------------------------
+   Main function
+-------------------------------------- */
+async function catalogueOpenScanner(onScan) {
+  CATSCAN.callback = onScan;
+
+  const modal = document.getElementById("scanModal");
+  const reader = document.getElementById("reader");
+
+  modal.classList.add("open");
+  modal.setAttribute("aria-hidden", "false");
+
+  // Build new scanner UI inside reader container
+  reader.innerHTML = `
+    <div style="position:relative;width:100%;height:300px;background:#000;border-radius:10px;overflow:hidden;">
+      <video id="catVideo" style="width:100%;height:100%;object-fit:cover;"></video>
+
+      <div id="catScanBox" style="
+        position:absolute;top:10%;left:10%;right:10%;bottom:10%;
+        border:2px solid rgba(255,255,255,0.3);
+        border-radius:14px;">
+      </div>
+
+      <div id="catAimLine" style="
+        position:absolute;left:12%;right:12%;
+        height:2px;background:linear-gradient(90deg,transparent,red,transparent);
+        opacity:0.8;">
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:10px;">
+      <select id="catQuality" style="padding:6px;border-radius:6px;border:1px solid #ccc;">
+        <option value="auto">Auto</option>
+        <option value="720">720p</option>
+        <option value="1080">1080p</option>
+      </select>
+      <button id="catSwitchCam" class="ghost small-btn">Switch</button>
+      <button id="catTorch" class="ghost small-btn">Torch</button>
+      <button id="catClose" class="ghost small-btn" style="margin-left:auto">Close</button>
+    </div>
+  `;
+
+  document.getElementById("catClose").onclick = closeCatalogueScanner;
+  document.getElementById("catSwitchCam").onclick = switchCatalogueCamera;
+  document.getElementById("catTorch").onclick = toggleCatalogueTorch;
+  document.getElementById("catQuality").onchange = restartCatalogueScanner;
+
+  animateCatalogueAim();
+  await startCatalogueScanner();
+}
+
+/* -------------------------------------
+   Start scanner
+-------------------------------------- */
+async function startCatalogueScanner() {
+  if (typeof Html5Qrcode === "undefined") {
+    alert("Scanner library missing");
+    return closeCatalogueScanner();
+  }
+
+  try {
+    CATSCAN.scanner = new Html5Qrcode("catVideo");
+
+    CATSCAN.cams = await Html5Qrcode.getCameras();
+    if (!CATSCAN.cams.length) {
+      alert("No camera found");
+      return closeCatalogueScanner();
+    }
+
+    CATSCAN.cams = catalogueSortCams(CATSCAN.cams);
+    CATSCAN.index = 0;
+
+    await startCatalogueCamera();
+
+  } catch (err) {
+    alert("Camera error: " + err.message);
+    closeCatalogueScanner();
+  }
+}
+
+/* -------------------------------------
+   Sort cameras: Back → Front → Others
+-------------------------------------- */
+function catalogueSortCams(list) {
+  const back = list.filter(c => (c.label||"").toLowerCase().includes("back") || (c.label||"").toLowerCase().includes("rear"));
+  const front = list.filter(c => (c.label||"").toLowerCase().includes("front"));
+  const other = list.filter(c => !back.includes(c) && !front.includes(c));
+  return [...back, ...front, ...other];
+}
+
+/* -------------------------------------
+   Start selected camera
+-------------------------------------- */
+async function startCatalogueCamera() {
+  const cam = CATSCAN.cams[CATSCAN.index];
+  const quality = document.getElementById("catQuality").value;
+
+  let config = { fps: 12, qrbox: 250 };
+
+  if (quality === "720") config.videoConstraints = { height:{ideal:720} };
+  if (quality === "1080") config.videoConstraints = { height:{ideal:1080} };
+
+  await CATSCAN.scanner.start(
+    { deviceId:{exact:cam.id} },
+    config,
+    (txt) => handleCatalogueScan(txt),
+    () => {}
+  );
+
+  prepareCatalogueTrack();
+}
+
+/* -------------------------------------
+   Handle barcode scan
+-------------------------------------- */
+function handleCatalogueScan(raw) {
+  const now = Date.now();
+  if (now - CATSCAN.lastScan < CATSCAN.debounce) return;
+  CATSCAN.lastScan = now;
+
+  const code = raw.trim();
+
+  // feedback
+  try { navigator.vibrate?.(150); } catch {}
+  playCatalogueBeep();
+
+  if (CATSCAN.callback) CATSCAN.callback(code);
+}
+
+/* -------------------------------------
+   Prepare track for torch + autofocus
+-------------------------------------- */
+function prepareCatalogueTrack() {
+  try {
+    const video = document.getElementById("catVideo");
+    if (video && video.srcObject) {
+      CATSCAN.track = video.srcObject.getVideoTracks()[0];
+
+      // autofocus every 2 seconds
+      tryCatalogueFocus();
+      CATSCAN.autofocusTimer = setInterval(tryCatalogueFocus, 2000);
+    }
+  } catch {}
+}
+
+function tryCatalogueFocus() {
+  try {
+    const caps = CATSCAN.track.getCapabilities();
+    if (caps.focusMode?.includes("continuous")) {
+      CATSCAN.track.applyConstraints({ advanced:[{focusMode:"continuous"}] });
+    }
+  } catch {}
+}
+
+/* -------------------------------------
+   Switch camera
+-------------------------------------- */
+async function switchCatalogueCamera() {
+  await stopCatalogueScanner();
+  CATSCAN.index = (CATSCAN.index + 1) % CATSCAN.cams.length;
+  await startCatalogueCamera();
+}
+
+/* -------------------------------------
+   Quality change
+-------------------------------------- */
+async function restartCatalogueScanner() {
+  await stopCatalogueScanner();
+  await startCatalogueCamera();
+}
+
+/* -------------------------------------
+   Torch toggle
+-------------------------------------- */
+async function toggleCatalogueTorch() {
+  if (!CATSCAN.track) return alert("Torch unsupported");
+
+  const caps = CATSCAN.track.getCapabilities();
+  if (!caps.torch) return alert("Torch not available");
+
+  const on = !CATSCAN.track._torchOn;
+  await CATSCAN.track.applyConstraints({ advanced:[{torch:on}] });
+  CATSCAN.track._torchOn = on;
+}
+
+/* -------------------------------------
+   Stop scanner
+-------------------------------------- */
+async function stopCatalogueScanner() {
+  try {
+    if (CATSCAN.autofocusTimer) clearInterval(CATSCAN.autofocusTimer);
+    if (CATSCAN.scanner) {
+      await CATSCAN.scanner.stop();
+      CATSCAN.scanner.clear();
+    }
+  } catch {}
+}
+
+/* -------------------------------------
+   Close scanner
+-------------------------------------- */
+async function closeCatalogueScanner() {
+  await stopCatalogueScanner();
+  const modal = document.getElementById("scanModal");
+  modal.classList.remove("open");
+  modal.setAttribute("aria-hidden", "true");
+}
+
+/* -------------------------------------
+   Aim-line animation
+-------------------------------------- */
+function animateCatalogueAim() {
+  const aim = document.getElementById("catAimLine");
+  let pos = 0, dir = 1;
+  setInterval(() => {
+    pos += dir * 1.5;
+    if (pos > 90) dir = -1;
+    if (pos < 0) dir = 1;
+    aim.style.top = pos + "%";
+  }, 20);
+}
+
+/* -------------------------------------
+   BEEP SOUND
+-------------------------------------- */
+function playCatalogueBeep() {
+  const ctx = new (window.AudioContext||window.webkitAudioContext)();
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = "sine";
+  osc.frequency.value = 900;
+  gain.gain.value = 0.08;
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start();
+  setTimeout(()=>{ osc.stop(); ctx.close(); }, 120);
+}
+
+    
+    // utilities
+    function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[m]); }
+
+    // initial category ensure and render
+    ensureCategoriesFromProducts();
+    render();
+    populateCategorySelect();
+    wireCategoryModalSync();
+
+    // expose small helper for debugging
+    window.PandianCatalogue = { products, categories, saveProducts, saveCategories };
+
+  })();
+  </script>
+</body>
+</html>

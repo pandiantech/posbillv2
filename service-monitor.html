@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Service Monitor — Pandian Tech Service</title>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f5fa; --card:#fff; --muted:#888; --text:#111; --accent:#111827;
+}
+*{box-sizing:border-box}
+body{font-family:'Quicksand',sans-serif;background:var(--bg);color:var(--text);margin:0}
+.wrap{max-width:1200px;margin:20px auto;padding:18px}
+
+/* header */
+header h1{margin:0 0 6px 0}
+.lead{color:var(--muted);font-size:13px;margin-bottom:12px}
+
+/* filter bar */
+.filter-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+.filter-btn{padding:8px 14px;border-radius:8px;border:0;cursor:pointer;font-weight:600;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.05);display:flex;align-items:center;gap:8px}
+.filter-btn.active{outline:3px solid rgba(0,0,0,0.06)}
+.filter-label{font-weight:700}
+.search{flex:1;min-width:220px}
+.search input{width:100%;padding:10px;border-radius:8px;border:1px solid #ccc}
+
+/* job grid */
+.job-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}
+.job-card{background:var(--card);padding:16px;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,0.05);display:flex;flex-direction:column;justify-content:space-between;transition:transform .15s}
+.job-card:hover{transform:translateY(-2px)}
+.job-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.job-no{font-weight:700}
+.status-select{padding:6px;border-radius:6px;font-size:13px}
+.job-body{margin-top:8px;font-size:14px;line-height:1.4}
+.job-actions{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+.btn-wa{background:#22c55e;color:#fff;border:0;padding:6px 10px;border-radius:8px;cursor:pointer;font-weight:600}
+.btn-timeline{background:#f3f4f6;color:#111;border:1px solid #e5e7eb;padding:6px 10px;border-radius:8px;cursor:pointer;font-weight:600}
+
+/* timeline modal */
+.timeline-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:2000}
+.timeline-overlay.active{display:flex}
+.timeline-modal{background:#fff;padding:20px;border-radius:10px;width:90%;max-width:420px;box-shadow:0 8px 20px rgba(0,0,0,0.3)}
+.timeline-modal h3{margin-top:0}
+.timeline-list{margin:10px 0;padding:0;list-style:none}
+.timeline-list li{padding:6px 0;border-bottom:1px solid #eee;font-size:13px}
+.timeline-close{background:#111827;color:#fff;padding:8px 12px;border-radius:8px;font-size:14px;border:0;margin-top:10px;cursor:pointer}
+
+/* small */
+.badge-count{background:rgba(0,0,0,0.06);padding:2px 8px;border-radius:999px;font-size:13px}
+@media(max-width:480px){
+  .filter-bar{flex-direction:column;align-items:stretch}
+  .filter-bar .search{order:2}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Service Job Monitor</h1>
+    <div class="lead">Track job progress, update status, and notify customers via WhatsApp.</div>
+  </header>
+
+  <div id="filterBar" class="filter-bar">
+    <div class="search"><input type="search" id="searchInput" placeholder="Search by name, mobile, or job no..."></div>
+    <!-- status buttons injected here -->
+  </div>
+
+  <div id="jobGrid" class="job-grid"></div>
+</div>
+
+<div id="timelineOverlay" class="timeline-overlay" aria-hidden="true">
+  <div class="timeline-modal" role="dialog" aria-modal="true">
+    <h3>Job Timeline</h3>
+    <ul id="timelineList" class="timeline-list"></ul>
+    <button id="timelineClose" class="timeline-close">Close</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const JOBS_KEY = 'jobs';
+  const STATUS_KEY = 'serviceStatusSettings';
+  const SETTINGS_KEY = 'companyDetails';
+
+  const $id = id => document.getElementById(id);
+  const loadJSON = (k, fallback) => {
+    try { return JSON.parse(localStorage.getItem(k) || JSON.stringify(fallback)); }
+    catch { return fallback; }
+  };
+  const saveJSON = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+
+  // Default statuses + colors (Option A)
+  const defaultStatuses = [
+    { id: 'received', label: 'Received', color: '#9ca3af' },
+    { id: 'processing', label: 'Processing', color: '#2563eb' },
+    { id: 'spare', label: 'Spare Changed', color: '#f97316' },
+    { id: 'ready', label: 'Ready', color: '#10b981' },
+    { id: 'delivered', label: 'Delivered', color: '#111827' }
+  ];
+
+  // Load data
+  let statuses = loadJSON(STATUS_KEY, defaultStatuses);
+  if (!Array.isArray(statuses) || statuses.length === 0) {
+    statuses = defaultStatuses.slice();
+    saveJSON(STATUS_KEY, statuses);
+  }
+  let jobs = loadJSON(JOBS_KEY, []);
+  let settings = loadJSON(SETTINGS_KEY, { companyName: 'Pandian Tech Service' });
+
+  // normalize job.status values to status IDs (handles older data where status stored as label or with caps/spaces)
+  function normalizeJobsIfNeeded() {
+    let changed = false;
+    const idByLabel = {};
+    statuses.forEach(s => { idByLabel[(s.label || '').toLowerCase().trim()] = s.id; });
+    statuses.forEach(s => { idByLabel[(s.id || '').toLowerCase().trim()] = s.id; });
+
+    jobs.forEach(job => {
+      if (!job || !job.status) {
+        // assign default if missing
+        job.status = job.status || 'received';
+        changed = true;
+        return;
+      }
+      const raw = String(job.status).toLowerCase().trim();
+      // if already matches a known id -> ok
+      if (statuses.find(s => s.id === raw)) {
+        job.status = raw;
+        return;
+      }
+      // try to find by label (case-insensitive)
+      const mapped = idByLabel[raw];
+      if (mapped) {
+        job.status = mapped;
+        changed = true;
+      } else {
+        // attempt simple normalization: remove spaces & lowercase and match partial
+        const compact = raw.replace(/\s+/g, '');
+        const found = statuses.find(s => (s.id + '').toLowerCase() === compact || (s.label + '').toLowerCase().replace(/\s+/g,'') === compact);
+        if (found) { job.status = found.id; changed = true; }
+        // otherwise keep as-is (but ensure lowercase)
+        else job.status = raw;
+      }
+    });
+
+    if (changed) saveJSON(JOBS_KEY, jobs);
+  }
+  normalizeJobsIfNeeded();
+
+  const jobGrid = $id('jobGrid');
+  const filterBar = $id('filterBar');
+  const searchInput = $id('searchInput');
+
+  function getColorForStatus(statusId) {
+    const s = statuses.find(x => x.id === statusId);
+    if (s && s.color) return s.color;
+    const map = {
+      received: '#9ca3af',
+      processing: '#2563eb',
+      spare: '#f97316',
+      ready: '#10b981',
+      delivered: '#111827'
+    };
+    return map[statusId] || '#6b7280';
+  }
+
+  function computeCounts() {
+    const counts = {};
+    statuses.forEach(s => counts[s.id] = 0);
+    jobs.forEach(j => {
+      const st = j.status || 'received';
+      counts[st] = (counts[st] || 0) + 1;
+    });
+    return counts;
+  }
+
+  function renderFilterButtons(activeFilter = 'all') {
+    // remove any previous status-filter buttons (preserve search input at index 0)
+    Array.from(filterBar.querySelectorAll('.status-filter')).forEach(n => n.remove());
+
+    const counts = computeCounts();
+
+    // "All" button
+    const btnAll = document.createElement('button');
+    btnAll.className = 'filter-btn status-filter ' + (activeFilter === 'all' ? 'active' : '');
+    btnAll.innerHTML = `<span class="filter-label">All</span><span class="badge-count">${jobs.length}</span>`;
+    btnAll.dataset.filter = 'all';
+    filterBar.appendChild(btnAll);
+
+    // each status button
+    statuses.forEach(s => {
+      const btn = document.createElement('button');
+      btn.className = 'filter-btn status-filter ' + (activeFilter === s.id ? 'active' : '');
+      btn.dataset.filter = s.id;
+      const color = getColorForStatus(s.id);
+      btn.innerHTML = `
+        <span style="width:12px;height:12px;border-radius:3px;background:${color};display:inline-block;margin-right:6px"></span>
+        <span class="filter-label">${s.label}</span>
+        <span class="badge-count" style="margin-left:6px">${counts[s.id]||0}</span>
+      `;
+      filterBar.appendChild(btn);
+    });
+  }
+
+  function renderJobs(filter = 'all', search = '') {
+    jobGrid.innerHTML = '';
+    const q = (search || '').toLowerCase().trim();
+    const list = jobs.filter(j => {
+      if (filter !== 'all' && j.status !== filter) return false;
+      if (q) {
+        const name = (j.customer && (j.customer.name || '')).toLowerCase();
+        const mobile = (j.customer && (j.customer.mobile || '')) + '';
+        const jobNo = String(j.jobNo || '');
+        if (!(name.includes(q) || mobile.includes(q) || jobNo.includes(q))) return false;
+      }
+      return true;
+    });
+
+    if (!list.length) {
+      jobGrid.innerHTML = '<p style="color:#666;">No jobs found.</p>';
+      return;
+    }
+
+    list.sort((a, b) => (Number(b.jobNo) || 0) - (Number(a.jobNo) || 0));
+
+    list.forEach(job => {
+      const div = document.createElement('div');
+      div.className = 'job-card';
+      const options = statuses.map(s => `<option value="${s.id}" ${job.status === s.id ? 'selected' : ''}>${s.label}</option>`).join('');
+      const color = getColorForStatus(job.status);
+      div.innerHTML = `
+        <div class="job-head">
+          <div>
+            <div class="job-no">#${job.jobNo || '-'}</div>
+            <div style="font-size:12px;color:${color};margin-top:4px">${(statuses.find(s=>s.id===job.status)||{label:job.status}).label}</div>
+          </div>
+          <select class="status-select" data-id="${job.id}">
+            ${options}
+          </select>
+        </div>
+        <div class="job-body">
+          <div><b>${(job.customer && job.customer.name) || '-'}</b> (${(job.customer && job.customer.mobile) || '-'})</div>
+          <div style="color:var(--muted);font-size:13px;">${job.device?.type||''} ${job.device?.brand||''} ${job.device?.model||''}</div>
+          <div style="margin-top:4px;font-size:13px;">Complaint: ${job.device?.complaint||''}</div>
+          <div style="font-size:13px;">Charge: ₹${job.charge||0}, Paid: ₹${job.paid||0}</div>
+        </div>
+        <div class="job-actions">
+          <button class="btn-wa" data-id="${job.id}">WhatsApp</button>
+          <button class="btn-timeline" data-id="${job.id}">Timeline</button>
+        </div>
+      `;
+      jobGrid.appendChild(div);
+    });
+  }
+
+  // initial render
+  renderFilterButtons('all');
+  renderJobs();
+
+  // search handling
+  searchInput.addEventListener('input', () => {
+    const q = searchInput.value;
+    const active = filterBar.querySelector('.status-filter.active');
+    const filter = active ? active.dataset.filter : 'all';
+    renderJobs(filter, q);
+  });
+
+  // filter clicks
+  filterBar.addEventListener('click', e => {
+    const btn = e.target.closest('.status-filter');
+    if (!btn) return;
+    const filter = btn.dataset.filter;
+    filterBar.querySelectorAll('.status-filter').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderJobs(filter, searchInput.value);
+  });
+
+  // handle status change on job dropdown
+  jobGrid.addEventListener('change', e => {
+    if (!e.target.classList.contains('status-select')) return;
+    const id = e.target.dataset.id;
+    const newStatus = e.target.value;
+    const idx = jobs.findIndex(j => j.id === id);
+    if (idx === -1) return;
+    jobs[idx].status = newStatus;
+    jobs[idx].statusHistory = jobs[idx].statusHistory || [];
+    jobs[idx].statusHistory.push({ stage: newStatus, time: new Date().toLocaleString() });
+    saveJSON(JOBS_KEY, jobs);
+    // refresh UI counts and list
+    renderFilterButtons(filterBar.querySelector('.status-filter.active')?.dataset.filter || 'all');
+    renderJobs(filterBar.querySelector('.status-filter.active')?.dataset.filter || 'all', searchInput.value);
+  });
+
+  // timeline & whatsapp actions
+  const overlay = $id('timelineOverlay');
+  const list = $id('timelineList');
+  $id('timelineClose').addEventListener('click', () => overlay.classList.remove('active'));
+
+  jobGrid.addEventListener('click', e => {
+    const id = e.target.dataset.id;
+    if (!id) return;
+    const job = jobs.find(j => j.id === id);
+    if (!job) return;
+    if (e.target.classList.contains('btn-timeline')) {
+      list.innerHTML = '';
+      (job.statusHistory || []).forEach(s => {
+        const li = document.createElement('li');
+        li.textContent = `${(statuses.find(x => x.id === s.stage)?.label || s.stage).toUpperCase()} — ${s.time}`;
+        list.appendChild(li);
+      });
+      overlay.classList.add('active');
+    } else if (e.target.classList.contains('btn-wa')) {
+      const s = statuses.find(x => x.id === job.status);
+      const msg = `Dear ${job.customer?.name||'Customer'}, your device status is now "${s?.label||job.status}". Job No: ${job.jobNo}. - ${settings.companyName||'Pandian Tech Service'}`;
+      // open whatsapp in new tab
+      window.open('https://wa.me/' + (job.customer?.mobile || '') + '?text=' + encodeURIComponent(msg), '_blank');
+    }
+  });
+
+  // When statuses change from settings page (other tab or same tab)
+  function onStatusesUpdated() {
+    statuses = loadJSON(STATUS_KEY, defaultStatuses);
+    if (!Array.isArray(statuses) || statuses.length === 0) {
+      statuses = defaultStatuses.slice();
+      saveJSON(STATUS_KEY, statuses);
+    }
+    // normalize jobs again (handles label->id transitions)
+    normalizeJobsIfNeeded();
+    renderFilterButtons(filterBar.querySelector('.status-filter.active')?.dataset.filter || 'all');
+    renderJobs(filterBar.querySelector('.status-filter.active')?.dataset.filter || 'all', searchInput.value);
+  }
+
+  // listen to storage events (cross-tab)
+  window.addEventListener('storage', ev => {
+    if (ev.key === STATUS_KEY) onStatusesUpdated();
+    if (ev.key === JOBS_KEY) {
+      jobs = loadJSON(JOBS_KEY, []);
+      onStatusesUpdated();
+    }
+  });
+
+  // listen to in-window custom event (same tab)
+  window.addEventListener('statusesUpdated', onStatusesUpdated);
+
+  // expose a refresh API
+  window.refreshStatusUI = onStatusesUpdated;
+
+})();
+</script>
+
+</body>
+</html>

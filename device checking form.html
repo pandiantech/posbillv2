@@ -1,0 +1,191 @@
+<style>
+.device-card {
+    background: #ffffff;
+    padding: 15px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    font-family: "Quicksand", sans-serif;
+}
+
+.device-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: #0f172a;
+}
+
+.check-row, .acc-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #f1f5f9;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+}
+
+.check-row input[type="text"],
+.acc-row input[type="text"] {
+    border: none;
+    background: transparent;
+    font-size: 15px;
+    outline: none;
+    width: 50%;
+}
+
+.option-group {
+    display: flex;
+    gap: 5px;
+}
+
+.opt-btn {
+    padding: 5px 10px;
+    border-radius: 6px;
+    border: 1px solid #94a3b8;
+    background: #e2e8f0;
+    cursor: pointer;
+    font-size: 13px;
+    user-select: none;
+}
+
+.opt-btn.active-on {
+    background: #16a34a;
+    color: white;
+    border-color: #16a34a;
+}
+
+.opt-btn.active-off {
+    background: #dc2626;
+    color: white;
+    border-color: #dc2626;
+}
+
+.opt-btn.active-na {
+    background: #475569;
+    color: white;
+    border-color: #475569;
+}
+
+.add-btn {
+    width: 100%;
+    padding: 10px;
+    background: #0f172a;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    cursor: pointer;
+    margin-top: 6px;
+}
+</style>
+
+<!-- =======================
+     DEVICE CHECKING
+======================= -->
+<div class="device-card">
+    <div class="device-title">Device Checking</div>
+    <div id="deviceCheckList">
+
+        <div class="check-row">
+            <input type="text" value="Display Working">
+            <div class="option-group">
+                <div class="opt-btn" onclick="selectOption(this,'on')">ON</div>
+                <div class="opt-btn" onclick="selectOption(this,'off')">OFF</div>
+                <div class="opt-btn" onclick="selectOption(this,'na')">N/A</div>
+            </div>
+        </div>
+
+        <div class="check-row">
+            <input type="text" value="Touch Working">
+            <div class="option-group">
+                <div class="opt-btn" onclick="selectOption(this,'on')">ON</div>
+                <div class="opt-btn" onclick="selectOption(this,'off')">OFF</div>
+                <div class="opt-btn" onclick="selectOption(this,'na')">N/A</div>
+            </div>
+        </div>
+
+        <div class="check-row">
+            <input type="text" value="Back Camera">
+            <div class="option-group">
+                <div class="opt-btn" onclick="selectOption(this,'on')">ON</div>
+                <div class="opt-btn" onclick="selectOption(this,'off')">OFF</div>
+                <div class="opt-btn" onclick="selectOption(this,'na')">N/A</div>
+            </div>
+        </div>
+
+    </div>
+
+    <button class="add-btn" onclick="addCheckItem()">+ Add More</button>
+</div>
+
+<!-- =======================
+     ACCESSORIES
+======================= -->
+<div class="device-card">
+    <div class="device-title">Accessories Received</div>
+    <div id="accessoriesList">
+
+        <div class="acc-row">
+            <input type="text" value="SIM Card">
+            <div class="option-group">
+                <div class="opt-btn" onclick="selectOption(this,'on')">ON</div>
+                <div class="opt-btn" onclick="selectOption(this,'off')">OFF</div>
+                <div class="opt-btn" onclick="selectOption(this,'na')">N/A</div>
+            </div>
+        </div>
+
+        <div class="acc-row">
+            <input type="text" value="Memory Card">
+            <div class="option-group">
+                <div class="opt-btn" onclick="selectOption(this,'on')">ON</div>
+                <div class="opt-btn" onclick="selectOption(this,'off')">OFF</div>
+                <div class="opt-btn" onclick="selectOption(this,'na')">N/A</div>
+            </div>
+        </div>
+
+    </div>
+
+    <button class="add-btn" onclick="addAccItem()">+ Add More</button>
+</div>
+
+<script>
+function selectOption(elem, type) {
+    const row = elem.parentElement;
+    const buttons = row.querySelectorAll(".opt-btn");
+
+    buttons.forEach(btn => btn.classList.remove("active-on", "active-off", "active-na"));
+
+    if (type === "on") elem.classList.add("active-on");
+    if (type === "off") elem.classList.add("active-off");
+    if (type === "na") elem.classList.add("active-na");
+}
+
+function addCheckItem() {
+    const div = document.createElement("div");
+    div.className = "check-row";
+    div.innerHTML = `
+        <input type="text" value="New Item">
+        <div class="option-group">
+            <div class="opt-btn" onclick="selectOption(this,'on')">ON</div>
+            <div class="opt-btn" onclick="selectOption(this,'off')">OFF</div>
+            <div class="opt-btn" onclick="selectOption(this,'na')">N/A</div>
+        </div>
+    `;
+    document.getElementById("deviceCheckList").appendChild(div);
+}
+
+function addAccItem() {
+    const div = document.createElement("div");
+    div.className = "acc-row";
+    div.innerHTML = `
+        <input type="text" value="New Accessory">
+        <div class="option-group">
+            <div class="opt-btn" onclick="selectOption(this,'on')">ON</div>
+            <div class="opt-btn" onclick="selectOption(this,'off')">OFF</div>
+            <div class="opt-btn" onclick="selectOption(this,'na')">N/A</div>
+        </div>
+    `;
+    document.getElementById("accessoriesList").appendChild(div);
+}
+</script>
