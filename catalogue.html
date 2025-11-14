@@ -854,15 +854,18 @@ const CAT_BARCODE = {
         } catch {}
     },
 
-    beep() {
-        try {
-            const audio = new Audio();
-            audio.src =
-              "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=";
-            audio.volume = 1;
-            audio.play();
-        } catch {}
-    }
+beep() {
+    try {
+        const audio = new Audio(
+          "data:audio/wav;base64," +
+          "UklGRiQAAABXQVZFZm10IBAAAAABAAEAIlYAACJWAAACABAAZGF0YQAA" +
+          "AICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAA" +
+          "AAAAAAAAP///wD///8A////AP///wD///8A////AP///wD///8A////" +
+          "AP///wD///8A////AP///wD///8A////AA=="  
+        );
+        audio.volume = 1.0;
+        audio.play();
+    } catch(e) { console.log("Beep error:", e); }
 };
 
 /* ----------------------- CONNECT TO YOUR MODAL BUTTON ----------------------- */
@@ -897,3 +900,4 @@ document.getElementById("scanBarcodeBtn").onclick = () => {
   </script>
 </body>
 </html>
+
