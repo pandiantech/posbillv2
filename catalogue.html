@@ -200,16 +200,48 @@
     </div>
   </div>
 
-  <!-- barcode scanner modal -->
-  <div id="scanModal" class="modal" aria-hidden="true">
-    <div class="modal-card">
-      <h3>Scan Barcode</h3>
-      <div id="reader"></div>
-      <div style="margin-top:10px;text-align:right;">
-        <button id="closeScan" class="ghost">Cancel</button>
-      </div>
+ <!-- barcode scanner modal -->
+<div id="scanModal" class="modal" aria-hidden="true">
+  <div class="modal-card" style="max-width:480px">
+
+    <h3>Scan Barcode</h3>
+
+    <!-- Scanner Area -->
+    <div id="reader" style="
+      width:100%;height:310px;background:#000;
+      border-radius:12px;overflow:hidden;position:relative;
+    ">
+      <!-- Laser -->
+      <div id="laserLine" style="
+        position:absolute;left:15%;right:15%;
+        height:3px;background:red;opacity:.8;
+        animation:laserMove 1.4s infinite alternate;
+      "></div>
+
+      <style>
+        @keyframes laserMove {0%{top:20%}100%{top:75%}}
+      </style>
     </div>
+
+    <!-- Buttons -->
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+      <select id="scanQuality" class="ghost small-btn" style="flex:1">
+        <option value="auto">Auto</option>
+        <option value="720">720p</option>
+        <option value="1080">1080p</option>
+      </select>
+
+      <button id="scanSwitch" class="ghost small-btn">Switch</button>
+      <button id="scanTorch" class="ghost small-btn">Torch</button>
+
+      <button id="scanCloseBtn" class="ghost small-btn" style="margin-left:auto">
+        Close
+      </button>
+    </div>
+
   </div>
+</div>
+
 
   <!-- toast -->
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -606,13 +638,14 @@
       };
       r.readAsText(f);
     });
-<script>
-/* ============================================================================
-   CATALOGUE — SCANNER PRO+
-   Continuous scanning • Torch • Switch Camera • HD • Laser • No Video Escape
-============================================================================ */
 
-let CATSCAN = {
+
+// ========================================================================
+// CATALOGUE BARCODE SCANNER PRO++
+// With Camera Switch • Torch • HD • Laser • AutoFocus • Auto-Close Logic
+// ========================================================================
+
+let SCAN = {
   qr: null,
   cams: [],
   index: 0,
@@ -621,69 +654,32 @@ let CATSCAN = {
   debounce: 1200,
   autofocusTimer: null,
 
-  async init() {
-    const btn = document.getElementById("scanBarcodeBtn");
-    btn.onclick = () => this.open();
-  },
-
-  /* --------------------------- OPEN SCANNER --------------------------- */
-  async open() {
-    const modal = document.getElementById("scanModal");
-    modal.classList.add("open");
-    modal.setAttribute("aria-hidden","false");
-
-    const reader = document.getElementById("reader");
-    reader.innerHTML = `
-      <div id="scanWrap" style="
-        position:relative;width:100%;height:320px;
-        border-radius:12px;overflow:hidden;background:#000;">
-        <div id="scanArea" style="width:100%;height:100%"></div>
-
-        <!-- Green Corners -->
-        <div style="position:absolute;left:14%;top:18%;width:72%;height:60%;pointer-events:none">
-          <div style="position:absolute;left:0;top:0;width:18px;height:18px;border-top:3px solid #22c55e;border-left:3px solid #22c55e"></div>
-          <div style="position:absolute;right:0;top:0;width:18px;height:18px;border-top:3px solid #22c55e;border-right:3px solid #22c55e"></div>
-          <div style="position:absolute;left:0;bottom:0;width:18px;height:18px;border-bottom:3px solid #22c55e;border-left:3px solid #22c55e"></div>
-          <div style="position:absolute;right:0;bottom:0;width:18px;height:18px;border-bottom:3px solid #22c55e;border-right:3px solid #22c55e"></div>
-        </div>
-
-        <!-- Laser Line -->
-        <div id="laser" style="
-          position:absolute;left:15%;right:15%;height:3px;
-          background:red;opacity:.8;animation:laserMove 1.4s infinite alternate;">
-        </div>
-
-        <style>
-          @keyframes laserMove {0%{top:30%}100%{top:70%}}
-        </style>
-      </div>
-
-      <div style="display:flex;gap:8px;margin-top:10px">
-        <select id="scanQuality" style="padding:6px;border-radius:6px;border:1px solid #ccc">
-          <option value="auto">Auto</option>
-          <option value="720">720p</option>
-          <option value="1080">1080p</option>
-        </select>
-        <button id="scanSwitch" class="ghost small-btn">Switch</button>
-        <button id="scanTorch" class="ghost small-btn">Torch</button>
-        <button id="scanCloseBtn" class="ghost small-btn" style="margin-left:auto">Close</button>
-      </div>
-    `;
-
+  init() {
+    document.getElementById("scanBarcodeBtn").onclick = () => this.open();
     document.getElementById("scanCloseBtn").onclick = () => this.close();
     document.getElementById("scanSwitch").onclick = () => this.switchCam();
     document.getElementById("scanTorch").onclick = () => this.toggleTorch();
     document.getElementById("scanQuality").onchange = () => this.restart();
+  },
+
+  // --------------------------- OPEN MODAL ---------------------------
+  async open() {
+    const modal = document.getElementById("scanModal");
+    modal.classList.add("open");
+    modal.setAttribute("aria-hidden", "false");
 
     await this.start();
   },
 
-  /* --------------------------- START CAMERA --------------------------- */
+  // --------------------------- START ---------------------------
   async start() {
-    this.qr = new Html5Qrcode("scanArea");
+    this.qr = new Html5Qrcode("reader");
 
     this.cams = await Html5Qrcode.getCameras();
-    if (!this.cams.length) { alert("No camera"); return; }
+    if (!this.cams.length) {
+      alert("No camera found");
+      return this.close();
+    }
 
     this.cams = this.sort(this.cams);
     this.index = 0;
@@ -695,12 +691,20 @@ let CATSCAN = {
     const cam = this.cams[this.index];
     const quality = document.getElementById("scanQuality").value;
 
-    let config = { fps: 12, qrbox: 250 };
-    if (quality === "720") config.videoConstraints = { height: { ideal:720 }};
-    if (quality === "1080") config.videoConstraints = { height: { ideal:1080 }};
+    let config = {
+      fps: 12,
+      qrbox: 250,
+      videoConstraints: {
+        deviceId: { exact: cam.id },
+        focusMode: "continuous"
+      }
+    };
+
+    if (quality === "720") config.videoConstraints.height = { ideal: 720 };
+    if (quality === "1080") config.videoConstraints.height = { ideal: 1080 };
 
     await this.qr.start(
-      { deviceId:{exact:cam.id} },
+      config.videoConstraints,
       config,
       txt => this.onScan(txt)
     );
@@ -708,13 +712,15 @@ let CATSCAN = {
     setTimeout(() => this.prepareTrack(), 500);
   },
 
+  // --------------------------- TRACK / TORCH / AUTOFOCUS ---------------------------
   prepareTrack() {
     try {
-      const video = document.querySelector("#scanArea video");
+      const video = document.querySelector("#reader video");
       if (video && video.srcObject) {
         this.track = video.srcObject.getVideoTracks()[0];
+
         this.autoFocus();
-        this.autofocusTimer = setInterval(()=> this.autoFocus(), 2000);
+        this.autofocusTimer = setInterval(() => this.autoFocus(), 2000);
       }
     } catch {}
   },
@@ -723,60 +729,70 @@ let CATSCAN = {
     try {
       const caps = this.track.getCapabilities();
       if (caps.focusMode?.includes("continuous")) {
-        this.track.applyConstraints({ advanced:[{ focusMode:"continuous" }] });
+        this.track.applyConstraints({
+          advanced: [{ focusMode: "continuous" }]
+        });
       }
     } catch {}
   },
 
-  /* --------------------------- SCAN HANDLER --------------------------- */
+  // --------------------------- SCAN DETECT ---------------------------
   onScan(raw) {
     const now = Date.now();
     if (now - this.lastScan < this.debounce) return;
+
     this.lastScan = now;
-
     const code = raw.trim();
-    this.beep();
-    navigator.vibrate?.(120);
 
-    // Fill product barcode
+    this.beep();
+    navigator.vibrate?.(100);
+
+    // Update input field
     document.getElementById("pbarcode").value = code;
 
     // Update preview
     const wrap = document.getElementById("barcodeWrap");
     wrap.innerHTML = "";
-    const svg = document.createElementNS("http://www.w3.org/2000/svg","svg");
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     wrap.appendChild(svg);
-    JsBarcode(svg, code, { format:"CODE128", displayValue:true, height:50 });
+    JsBarcode(svg, code, { format: "CODE128", displayValue: true, height: 50 });
+
+    // Auto-close ONLY if product exists
+    const prod = products.find(p => p.barcode == code);
+    if (prod) {
+      this.close();
+      return;
+    }
 
     showToast("Scanned: " + code);
-
-    // DO NOT CLOSE in catalogue
   },
 
-  /* --------------------------- CAMERA CONTROL --------------------------- */
+  // --------------------------- SWITCH CAMERA ---------------------------
   async switchCam() {
     await this.stop();
     this.index = (this.index + 1) % this.cams.length;
     await this.startCam();
   },
 
+  // --------------------------- TORCH ---------------------------
   async toggleTorch() {
     if (!this.track) return alert("Torch unsupported");
+
     const caps = this.track.getCapabilities();
     if (!caps.torch) return alert("Torch not available");
 
     const on = !this.track._torchOn;
-    await this.track.applyConstraints({ advanced:[{torch:on}] });
+    await this.track.applyConstraints({ advanced: [{ torch: on }] });
     this.track._torchOn = on;
   },
 
-  /* --------------------------- QUALITY CHANGE --------------------------- */
+  // --------------------------- QUALITY CHANGE ---------------------------
   async restart() {
     await this.stop();
     await this.startCam();
   },
 
-  /* --------------------------- STOP & CLOSE --------------------------- */
+  // --------------------------- STOP / CLOSE ---------------------------
   async stop() {
     try { clearInterval(this.autofocusTimer); } catch {}
     try { await this.qr.stop(); } catch {}
@@ -787,35 +803,40 @@ let CATSCAN = {
     await this.stop();
     const modal = document.getElementById("scanModal");
     modal.classList.remove("open");
-    modal.setAttribute("aria-hidden","true");
+    modal.setAttribute("aria-hidden", "true");
   },
 
-  /* --------------------------- HELPER --------------------------- */
+  // --------------------------- CAMERA PRIORITY ---------------------------
   sort(list) {
     const back = list.filter(c => /back|rear|environment/i.test(c.label));
     const front = list.filter(c => /front|user/i.test(c.label));
     const others = list.filter(x => !back.includes(x) && !front.includes(x));
-    return [...back, ...front, ...others];
+
+    return [...back, ...front, ...others]; // priority: back → front → others
   },
 
+  // --------------------------- LOUD BEEP ---------------------------
   beep() {
     try {
-      const ctx = new (window.AudioContext||window.webkitAudioContext)();
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.frequency.value = 1100;
-      gain.gain.value = 0.35;
+
+      gain.gain.value = 0.45;      // LOUD
+      osc.frequency.value = 1350;  // Strong beep freq
       osc.type = "square";
+
       osc.connect(gain);
       gain.connect(ctx.destination);
+
       osc.start();
-      setTimeout(() => { osc.stop(); ctx.close(); }, 160);
+      setTimeout(() => { osc.stop(); ctx.close(); }, 150);
     } catch {}
   }
 };
 
-CATSCAN.init();
-</script>
+SCAN.init();
+
 
     
     // utilities
