@@ -641,9 +641,7 @@
 
 
 // ========================================================================
-// CATALOGUE BARCODE SCANNER PRO++
-// With Camera Switch • Torch • HD • Laser • AutoFocus • Auto-Close Logic
-// ========================================================================
+// ====== REPLACE PREVIOUS SCANNER WITH THIS PATCHED VERSION ======
 
 let SCAN = {
   qr: null,
@@ -655,28 +653,49 @@ let SCAN = {
   autofocusTimer: null,
 
   init() {
-    document.getElementById("scanBarcodeBtn").onclick = () => this.open();
-    document.getElementById("scanCloseBtn").onclick = () => this.close();
-    document.getElementById("scanSwitch").onclick = () => this.switchCam();
-    document.getElementById("scanTorch").onclick = () => this.toggleTorch();
-    document.getElementById("scanQuality").onchange = () => this.restart();
+    // wire up modal buttons (they must exist in DOM)
+    const openBtn = document.getElementById("scanBarcodeBtn");
+    if (openBtn) openBtn.addEventListener("click", () => this.open());
+
+    const closeBtn = document.getElementById("scanCloseBtn");
+    if (closeBtn) closeBtn.addEventListener("click", () => this.close());
+
+    const switchBtn = document.getElementById("scanSwitch");
+    if (switchBtn) switchBtn.addEventListener("click", () => this.switchCam());
+
+    const torchBtn = document.getElementById("scanTorch");
+    if (torchBtn) torchBtn.addEventListener("click", () => this.toggleTorch());
+
+    const qualitySel = document.getElementById("scanQuality");
+    if (qualitySel) qualitySel.addEventListener("change", () => this.restart());
+
+    // attach usb/keyboard Enter handler for external barcode guns
+    this.attachUsbEnterHandler();
   },
 
-  // --------------------------- OPEN MODAL ---------------------------
   async open() {
     const modal = document.getElementById("scanModal");
+    if (!modal) return alert("Scanner modal missing");
     modal.classList.add("open");
     modal.setAttribute("aria-hidden", "false");
 
-    await this.start();
+    try {
+      await this.start();
+    } catch (err) {
+      console.warn("Scanner start error:", err);
+      alert("Camera access failed: " + (err && err.message ? err.message : err));
+      this.close();
+    }
   },
 
-  // --------------------------- START ---------------------------
   async start() {
+    if (typeof Html5Qrcode === "undefined") throw new Error("html5-qrcode not loaded");
+
+    // create instance attached to the reader element (ensures video stays inside modal)
     this.qr = new Html5Qrcode("reader");
 
     this.cams = await Html5Qrcode.getCameras();
-    if (!this.cams.length) {
+    if (!this.cams || !this.cams.length) {
       alert("No camera found");
       return this.close();
     }
@@ -689,153 +708,255 @@ let SCAN = {
 
   async startCam() {
     const cam = this.cams[this.index];
-    const quality = document.getElementById("scanQuality").value;
+    const quality = (document.getElementById("scanQuality") || {}).value || "auto";
 
-    let config = {
+    // base config for html5-qrcode
+    const cfg = {
       fps: 12,
-      qrbox: 250,
-      videoConstraints: {
-        deviceId: { exact: cam.id },
-        focusMode: "continuous"
-      }
+      qrbox: { width: Math.min(420, Math.floor((document.querySelector("#reader")?.clientWidth || 400) * 0.8)) }
     };
 
-    if (quality === "720") config.videoConstraints.height = { ideal: 720 };
-    if (quality === "1080") config.videoConstraints.height = { ideal: 1080 };
+    // videoConstraints passed as first arg to start: deviceId or more constraints
+    let deviceConstraints = { deviceId: { exact: cam.id } };
+    if (quality === "720") deviceConstraints.height = { ideal: 720 };
+    if (quality === "1080") deviceConstraints.height = { ideal: 1080 };
 
+    // start scanning (continuous)
     await this.qr.start(
-      config.videoConstraints,
-      config,
-      txt => this.onScan(txt)
+      deviceConstraints,
+      cfg,
+      (decodedText) => this.onScan(decodedText),
+      (errorMsg) => { /* ignore runtime decode errors */ }
     );
 
+    // try to capture track for torch/autofocus
     setTimeout(() => this.prepareTrack(), 500);
   },
 
-  // --------------------------- TRACK / TORCH / AUTOFOCUS ---------------------------
   prepareTrack() {
     try {
       const video = document.querySelector("#reader video");
       if (video && video.srcObject) {
-        this.track = video.srcObject.getVideoTracks()[0];
+        this.track = video.srcObject.getVideoTracks()[0] || null;
 
+        // autofocus attempts every 2s
         this.autoFocus();
+        try { clearInterval(this.autofocusTimer); } catch (e) {}
         this.autofocusTimer = setInterval(() => this.autoFocus(), 2000);
       }
-    } catch {}
+    } catch (e) {
+      this.track = null;
+    }
   },
 
   autoFocus() {
     try {
+      if (!this.track) return;
       const caps = this.track.getCapabilities();
-      if (caps.focusMode?.includes("continuous")) {
-        this.track.applyConstraints({
-          advanced: [{ focusMode: "continuous" }]
-        });
+      if (caps && caps.focusMode && caps.focusMode.includes("continuous")) {
+        this.track.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(()=>{});
       }
-    } catch {}
+    } catch(e){}
   },
 
-  // --------------------------- SCAN DETECT ---------------------------
-  onScan(raw) {
+  async onScan(raw) {
     const now = Date.now();
     if (now - this.lastScan < this.debounce) return;
-
     this.lastScan = now;
-    const code = raw.trim();
 
-    this.beep();
-    navigator.vibrate?.(100);
+    const code = String(raw || "").trim();
+    if (!code) return;
 
-    // Update input field
-    document.getElementById("pbarcode").value = code;
+    // UI updates & feedback
+    try { await playLoudBeep(); } catch(e){ /* ignore audio failure */ }
+    try { navigator.vibrate?.(120); } catch(e){}
 
-    // Update preview
+    // fill input & preview (keeps existing behaviour)
+    const pbarcode = document.getElementById("pbarcode");
+    if (pbarcode) pbarcode.value = code;
+
     const wrap = document.getElementById("barcodeWrap");
-    wrap.innerHTML = "";
-    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    wrap.appendChild(svg);
-    JsBarcode(svg, code, { format: "CODE128", displayValue: true, height: 50 });
+    if (wrap) {
+      try {
+        wrap.innerHTML = "";
+        const svg = document.createElementNS("http://www.w3.org/2000/svg","svg");
+        wrap.appendChild(svg);
+        JsBarcode(svg, code, { format: "CODE128", displayValue: true, height: 50 });
+      } catch(e){}
+    }
 
-    // Auto-close ONLY if product exists
-    const prod = products.find(p => p.barcode == code);
+    // If product exists → STOP scanner cleanly and CLOSE modal immediately
+    const prod = (window.products || []).find(p => String(p.barcode) === String(code));
     if (prod) {
-      this.close();
+      // optional visual toast
+      showToast("Product found: " + (prod.name || prod.barcode || code));
+      // stop scanner and close
+      try {
+        await this.stop(); // stops qr & tracks
+      } catch (e) { /* ignore */ }
+      // close modal DOM
+      const modal = document.getElementById("scanModal");
+      if (modal) {
+        modal.classList.remove("open");
+        modal.setAttribute("aria-hidden","true");
+      }
       return;
     }
 
-    showToast("Scanned: " + code);
+    // Not found — keep scanning, show a non-blocking hint
+    showToast("Scanned: " + code + " — product not found");
   },
 
-  // --------------------------- SWITCH CAMERA ---------------------------
   async switchCam() {
-    await this.stop();
-    this.index = (this.index + 1) % this.cams.length;
+    try {
+      await this.stop();
+    } catch (e) {}
+    this.index = (this.index + 1) % (this.cams.length || 1);
     await this.startCam();
   },
 
-  // --------------------------- TORCH ---------------------------
   async toggleTorch() {
     if (!this.track) return alert("Torch unsupported");
-
-    const caps = this.track.getCapabilities();
-    if (!caps.torch) return alert("Torch not available");
-
-    const on = !this.track._torchOn;
-    await this.track.applyConstraints({ advanced: [{ torch: on }] });
-    this.track._torchOn = on;
+    try {
+      const caps = this.track.getCapabilities();
+      if (!caps || !caps.torch) return alert("Torch not available for this camera");
+      const on = !this.track._torchOn;
+      await this.track.applyConstraints({ advanced: [{ torch: on }] });
+      this.track._torchOn = on;
+    } catch (e) {
+      console.warn("Torch toggle failed", e);
+      alert("Torch failed: " + (e && e.message ? e.message : e));
+    }
   },
 
-  // --------------------------- QUALITY CHANGE ---------------------------
   async restart() {
-    await this.stop();
+    try { await this.stop(); } catch(e){}
     await this.startCam();
   },
 
-  // --------------------------- STOP / CLOSE ---------------------------
   async stop() {
-    try { clearInterval(this.autofocusTimer); } catch {}
-    try { await this.qr.stop(); } catch {}
-    try { this.track?.stop(); } catch {}
+    try { clearInterval(this.autofocusTimer); } catch(e){}
+    try {
+      if (this.qr) {
+        await this.qr.stop(); // stops scanner
+        this.qr.clear();
+        this.qr = null;
+      }
+    } catch(e){ /* ignore */ }
+
+    // stop media tracks if any
+    try {
+      if (this.track) {
+        try { this.track.stop(); } catch(e){}
+        this.track = null;
+      }
+      const video = document.querySelector("#reader video");
+      if (video && video.srcObject) {
+        const tracks = video.srcObject.getTracks() || [];
+        tracks.forEach(t => { try{ t.stop(); }catch{} });
+        try { video.srcObject = null; } catch(e){}
+      }
+    } catch(e){}
   },
 
   async close() {
-    await this.stop();
+    try { await this.stop(); } catch(e){}
     const modal = document.getElementById("scanModal");
-    modal.classList.remove("open");
-    modal.setAttribute("aria-hidden", "true");
+    if (modal) {
+      modal.classList.remove("open");
+      modal.setAttribute("aria-hidden","true");
+    }
   },
 
-  // --------------------------- CAMERA PRIORITY ---------------------------
   sort(list) {
-    const back = list.filter(c => /back|rear|environment/i.test(c.label));
-    const front = list.filter(c => /front|user/i.test(c.label));
-    const others = list.filter(x => !back.includes(x) && !front.includes(x));
-
-    return [...back, ...front, ...others]; // priority: back → front → others
+    const back = list.filter(c => /back|rear|environment/i.test(c.label || ""));
+    const front = list.filter(c => /front|user/i.test(c.label || ""));
+    const others = list.filter(c => !back.includes(c) && !front.includes(c));
+    return [...back, ...front, ...others];
   },
 
-  // --------------------------- LOUD BEEP ---------------------------
-  beep() {
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-
-      gain.gain.value = 0.45;      // LOUD
-      osc.frequency.value = 1350;  // Strong beep freq
-      osc.type = "square";
-
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-
-      osc.start();
-      setTimeout(() => { osc.stop(); ctx.close(); }, 150);
-    } catch {}
+  attachUsbEnterHandler() {
+    // Many external barcode scanners act like keyboards and append Enter.
+    // When user types/scans into #pbarcode and presses Enter, we validate & close if product exists.
+    const input = document.getElementById("pbarcode");
+    if (!input) return;
+    input.addEventListener("keydown", async (e) => {
+      if (e.key === "Enter") {
+        const code = (input.value || "").trim();
+        if (!code) return;
+        const prod = (window.products || []).find(p => String(p.barcode) === String(code));
+        if (prod) {
+          showToast("Product found: " + (prod.name || prod.barcode || code));
+          try { await this.stop(); } catch(e){}
+          const modal = document.getElementById("scanModal");
+          if (modal) {
+            modal.classList.remove("open");
+            modal.setAttribute("aria-hidden","true");
+          }
+        } else {
+          showToast("Product not found: " + code);
+        }
+      }
+    });
   }
 };
 
-SCAN.init();
+// Loud beep helper — tries to resume AudioContext on mobile
+async function playLoudBeep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === "suspended" && typeof ctx.resume === "function") {
+      // try resume (browsers require user gesture; open() will be user gesture in most cases)
+      try { await ctx.resume(); } catch (e) {}
+    }
+
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+
+    o.type = "square";
+    o.frequency.value = 1400; // louder higher pitch
+    g.gain.value = 0.5;        // noticeable loudness (be careful on headphones)
+
+    o.connect(g);
+    g.connect(ctx.destination);
+
+    o.start();
+
+    // short envelope
+    g.gain.setValueAtTime(0.0001, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.5, ctx.currentTime + 0.02);
+
+    setTimeout(() => {
+      try {
+        g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.02);
+      } catch (e) {}
+      try { o.stop(); } catch(e){}
+      try { ctx.close(); } catch(e){}
+    }, 160);
+
+  } catch (err) {
+    // fallback silent fail
+    console.warn("beep failed", err);
+  }
+}
+
+// small toast helper (keeps using your existing showToast if available)
+function showToast(msg){
+  try {
+    if (typeof window.showToast === "function") return window.showToast(msg);
+  } catch(e){}
+  const t = document.getElementById("toast");
+  if (!t) return;
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(t._t);
+  t._t = setTimeout(()=> t.classList.remove("show"), 2000);
+}
+
+// initialize
+document.addEventListener("DOMContentLoaded", () => {
+  try { SCAN.init(); } catch(e){ console.warn("SCAN.init failed", e); }
+});
 
 
     
