@@ -2,203 +2,287 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Dashboard — Pandian Tech Service</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 
 <style>
-/* ========================================================
-   🎨 GLOBAL MODERN SKY THEME (APPLY TO ALL PAGES)
-   ======================================================== */
-:root{
-  --sidebar:#0f172a;          /* dark navy */
-  --sidebar-hover:#1e293b;    /* slate */
-  --sidebar-text:#e2e8f0;     /* cool gray */
-  --sidebar-active:#38bdf8;   /* sky blue */
+/* -------------------------------------------------
+   APPLE STYLE — CLEAN FLAT UI + PREMIUM ANIMATIONS
+--------------------------------------------------- */
 
-  --bg:#f1f5f9;               /* light slate */
-  --text:#0f172a;             /* deep navy */
+:root{
+  --sidebar-bg:#ffffff;
+  --sidebar-border:#e6e8ec;
+  --sidebar-text:#3a3d43;
+  --sidebar-active:#0a84ff;
+  --sidebar-hover:#f2f4f7;
+
+  --page-bg:#f5f6f7;
+  --text:#1c1c1e;
 
   --card-bg:#ffffff;
-  --card-border:#e2e8f0;
+  --shadow:0 2px 10px rgba(0,0,0,0.06);
 
-  --input-bg:#ffffff;
-  --input-border:#cbd5e1;
-
-  --header-bg:#0f172a;
-  --header-text:#e2e8f0;
-
-  --btn-primary:#3b82f6;
-  --btn-primary-text:#fff;
-
-  --btn-ghost:#e2e8f0;
-  --btn-ghost-text:#0f172a;
+  --radius:14px;
 }
 
-*{
-  box-sizing:border-box;
-  margin:0;
-  padding:0;
-  font-family:'Quicksand',sans-serif;
+*{ box-sizing:border-box; margin:0; padding:0; font-family:'Inter',sans-serif }
+
+/* -------------------------------------------------
+   GLOBAL ANIMATIONS
+--------------------------------------------------- */
+@keyframes fadeSlide {
+  0% { opacity:0; transform:translateY(15px); }
+  100% { opacity:1; transform:translateY(0); }
 }
 
-/* GLOBAL PAGE RESET */
+@keyframes fadeIframe {
+  0% { opacity:0; }
+  100% { opacity:1; }
+}
+
+@keyframes popIn {
+  0% { transform:scale(.92); opacity:0; }
+  100% { transform:scale(1); opacity:1; }
+}
+
+@keyframes slideSidebar {
+  0% { transform:translateX(-30px); opacity:0; }
+  100% { transform:translateX(0); opacity:1; }
+}
+
+/* ripple effect */
+.ripple{
+  position:absolute;
+  background:rgba(0,0,0,.08);
+  border-radius:50%;
+  transform:scale(0);
+  animation:rippleEffect .6s linear;
+}
+@keyframes rippleEffect{
+  to{ transform:scale(4); opacity:0; }
+}
+
+/* -------------------------------------------------
+   LAYOUT
+--------------------------------------------------- */
 body{
-  background:var(--bg);
-  color:var(--text);
   display:flex;
-  min-height:100vh;
+  height:100vh;
+  overflow:hidden;
+  background:var(--page-bg);
+  color:var(--text);
+  animation:fadeSlide .6s ease-out;
 }
 
-/* ========================================================
-   📌 SIDEBAR
-   ======================================================== */
+/* -------------------------------------------------
+   SIDEBAR
+--------------------------------------------------- */
 .sidebar{
-  width:230px;
-  background:var(--sidebar);
-  color:var(--sidebar-text);
-  position:fixed;
-  top:0;left:0;bottom:0;
-  padding:20px 12px;
+  width:240px;
+  background:var(--sidebar-bg);
+  border-right:1px solid var(--sidebar-border);
+  padding:24px 16px;
   display:flex;
   flex-direction:column;
-  gap:20px;
-  transition:0.3s;
-  z-index:9999;
+  gap:24px;
+  flex-shrink:0;
+  animation:slideSidebar .6s ease-out;
 }
 
-.sidebar h2{
-  font-size:20px;
+.brand{
+  font-size:22px;
+  font-weight:600;
   color:var(--sidebar-active);
   text-align:center;
 }
 
-.nav-links{
+.nav{
   display:flex;
   flex-direction:column;
   gap:8px;
 }
 
-.nav-links a{
+.nav a{
+  position:relative;
   display:flex;
   align-items:center;
-  gap:10px;
+  gap:14px;
   text-decoration:none;
+  padding:12px 14px;
+  border-radius:var(--radius);
+  font-size:15px;
   color:var(--sidebar-text);
-  padding:10px 14px;
-  border-radius:8px;
-  background:rgba(255,255,255,0.05);
-  transition:0.2s;
-  font-size:14px;
+  transition:.25s;
+  overflow:hidden;
 }
 
-.nav-links a:hover{
+.nav a i{
+  font-size:18px;
+  width:20px;
+  text-align:center;
+  opacity:0.9;
+  transition:.25s;
+}
+
+/* hover zoom + smooth highlight */
+.nav a:hover{
   background:var(--sidebar-hover);
-  color:var(--sidebar-active);
+  transform:scale(1.03);
 }
 
-/* ========================================================
-   📌 MAIN CONTENT
-   ======================================================== */
+.nav a.active{
+  background:var(--sidebar-active);
+  color:#fff;
+  animation:popIn .3s ease-in-out;
+}
+
+/* -------------------------------------------------
+   MAIN CONTENT
+--------------------------------------------------- */
 .main{
-  margin-left:230px;
-  padding:18px;
-  width:100%;
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  padding:22px;
+  overflow:hidden;
+  animation:fadeSlide .7s ease;
 }
 
 .header{
-  font-size:20px;
-  font-weight:700;
+  font-size:22px;
+  font-weight:600;
   margin-bottom:14px;
-  color:var(--text);
+  animation:popIn .4s ease;
+}
+
+.frame-box{
+  flex:1;
+  background:var(--card-bg);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  overflow:hidden;
+  animation:fadeSlide .5s ease;
 }
 
 iframe{
   width:100%;
-  height:calc(100vh - 40px);
-  border:none;
-  border-radius:10px;
-  background:white;
-  box-shadow:0 4px 12px rgba(0,0,0,0.1);
-}
-
-/* ========================================================
-   📱 MOBILE RESPONSIVE
-   ======================================================== */
-.menu-btn{
-  display:none;
-  position:fixed;
-  top:12px;
-  left:12px;
-  background:var(--sidebar);
-  color:var(--sidebar-text);
+  height:100%;
   border:0;
-  padding:10px 12px;
-  border-radius:8px;
-  z-index:10000;
+  animation:fadeIframe .5s ease;
 }
 
-@media(max-width:700px){
+/* -------------------------------------------------
+   MOBILE — TOP NAV (ANIMATED)
+--------------------------------------------------- */
+@media(max-width:650px){
+
+  body{ flex-direction:column; }
+
   .sidebar{
-    left:-250px;
+    width:100%;
+    height:auto;
+    flex-direction:row;
+    align-items:center;
+    justify-content:flex-start;
+    padding:10px 6px;
+    overflow-x:auto;
+    border-right:0;
+    border-bottom:1px solid var(--sidebar-border);
+    animation:slideSidebar .6s ease-out;
   }
-  .sidebar.active{
-    left:0;
+
+  .brand{ display:none; }
+
+  .nav{
+    flex-direction:row;
+    gap:6px;
   }
-  .main{
-    margin-left:0;
-    padding-top:60px;
+
+  .nav a{
+    padding:8px 12px;
+    font-size:13px;
+    flex-shrink:0;
   }
-  .menu-btn{
-    display:block;
-  }
+
+  .nav a i{ font-size:16px; }
+
+  .main{ padding:12px; }
+
+  .header{ font-size:18px; }
+
+  .frame-box{ border-radius:12px; }
 }
 </style>
+
 </head>
 
 <body>
 
-<!-- MOBILE MENU BUTTON -->
-<button class="menu-btn" onclick="toggleSidebar()"><i class="bi bi-list"></i></button>
-
 <!-- SIDEBAR -->
-<div class="sidebar" id="sidebar">
-  <h2>PTS</h2>
+<div class="sidebar">
 
-  <div class="nav-links">
-    <a onclick="openPage('billing.html')"><i class="bi bi-receipt"></i> Billing</a>
-    <a onclick="openPage('service.html')"><i class="bi bi-wrench"></i> Service</a>
-    <a onclick="openPage('service-monitor.html')"><i class="bi bi-speedometer2"></i> Service Monitor</a>
-    <a onclick="openPage('invoices.html')"><i class="bi bi-file-earmark-text"></i> Invoices</a>
-    <a onclick="openPage('catalogue.html')"><i class="bi bi-grid"></i> Catalogue</a>
-    <a onclick="openPage('stock.html')"><i class="bi bi-box-seam"></i> Stock</a>
-    <a onclick="openPage('customers.html')"><i class="bi bi-people"></i> Customers</a>
-    <a onclick="openPage('device-manager.html')"><i class="bi bi-phone"></i> Device Manager</a>
-    <a onclick="openPage('service-status-settings.html')"><i class="bi bi-sliders"></i> Status Settings</a>
-    <a onclick="openPage('settings.html')"><i class="bi bi-gear"></i> Settings</a>
-    <a onclick="openPage('data-manager.html')"><i class="bi bi-database"></i> Data Manager</a>
+
+  <div class="nav" id="nav">
+    <a onclick="openPage('billing.html')" id="link-billing"><i class="bi bi-receipt"></i>Billing</a>
+    <a onclick="openPage('service.html')" id="link-service"><i class="bi bi-wrench"></i>Service</a>
+    <a onclick="openPage('service-monitor.html')" id="link-monitor"><i class="bi bi-activity"></i>Monitor</a>
+    <a onclick="openPage('invoices.html')" id="link-invoices"><i class="bi bi-file-earmark-text"></i>Invoices</a>
+    <a onclick="openPage('catalogue.html')" id="link-catalogue"><i class="bi bi-grid"></i>Catalogue</a>
+    <a onclick="openPage('stock.html')" id="link-stock"><i class="bi bi-box-seam"></i>Stock</a>
+    <a onclick="openPage('customers.html')" id="link-customers"><i class="bi bi-people"></i>Customers</a>
+    <a onclick="openPage('device-manager.html')" id="link-device"><i class="bi bi-phone"></i>Devices</a>
+    <a onclick="openPage('service-status-settings.html')" id="link-status"><i class="bi bi-sliders"></i>Status</a>
+    <a onclick="openPage('settings.html')" id="link-settings"><i class="bi bi-gear"></i>Settings</a>
+    <a onclick="openPage('data-manager.html')" id="link-data"><i class="bi bi-cloud-arrow-down"></i>Backup</a>
   </div>
 </div>
 
-<!-- MAIN CONTENT AREA -->
+<!-- MAIN AREA -->
 <div class="main">
   <div class="header">Dashboard</div>
-  <iframe id="pageFrame" src="billing.html"></iframe>
+
+  <div class="frame-box">
+    <iframe id="pageFrame" src="billing.html"></iframe>
+  </div>
 </div>
 
 <script>
-function toggleSidebar(){
-  document.getElementById('sidebar').classList.toggle('active');
-}
+/* Ripple effect */
+document.querySelectorAll('.nav a').forEach(btn=>{
+  btn.addEventListener('click', function(e){
+    const circle=document.createElement("span");
+    circle.classList.add("ripple");
+    const rect=btn.getBoundingClientRect();
+    circle.style.left=`${e.clientX-rect.left}px`;
+    circle.style.top=`${e.clientY-rect.top}px`;
+    btn.appendChild(circle);
+    setTimeout(()=>circle.remove(), 600);
+  });
+});
 
 function openPage(page){
-  document.getElementById('pageFrame').src = page;
-  if(window.innerWidth < 700){
-    toggleSidebar();
-  }
+  document.getElementById("pageFrame").style.opacity = "0";
+  setTimeout(()=>{
+    document.getElementById("pageFrame").src = page;
+    document.getElementById("pageFrame").style.opacity = "1";
+  },200);
+
+  highlight(page);
 }
+
+function highlight(page){
+  const pageName = page.split(".")[0];
+  document.querySelectorAll(".nav a").forEach(a => a.classList.remove("active"));
+  const activeLink = document.getElementById("link-" + pageName);
+  if(activeLink) activeLink.classList.add("active");
+}
+
+// default active
+highlight("billing.html");
 </script>
 
 </body>
