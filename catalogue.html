@@ -639,160 +639,143 @@
       r.readAsText(f);
     });
 /* ============================================================================
-   BARCODE SCANNER — PRO++ (Catalogue)
-   Fast • Accurate • Auto-close • Torch • Switch Camera • HD • Laser
+   PANDIAN TECH — CATALOGUE PAGE ULTRA PRO BARCODE SCANNER (FINAL BUILD)
 ============================================================================ */
 
-let CATSCAN = {
-    scanner: null,
+const CAT_BARCODE = {
     cams: [],
     index: 0,
     stream: null,
     track: null,
-    last: 0,
-    debounce: 800,
-    autofocusTimer: null,
+    detector: null,
+    lastScan: 0,
+    delay: 900,
     onScan: null,
+    autoFocusTimer: null,
+    fallback: null,
 
-    /* ------------------ INIT BUTTON ------------------ */
-    init() {
-        document.getElementById("scanBarcodeBtn").onclick = () => {
-            CATSCAN.open(code => {
-                document.getElementById("pbarcode").value = code;
-
-                const wrap = document.getElementById("barcodeWrap");
-                wrap.innerHTML = "";
-                const svg = document.createElementNS("http://www.w3.org/2000/svg","svg");
-                wrap.appendChild(svg);
-                JsBarcode(svg, code, { format:"CODE128", displayValue:true, height:50 });
-
-                showToast("Scanned: " + code);
-            });
-        };
-    },
-
-    /* ------------------ OPEN MODAL ------------------ */
     async open(callback) {
         this.onScan = callback;
 
-        const modal = document.getElementById("scanModal");
-        modal.classList.add("open");
-        modal.setAttribute("aria-hidden","false");
+        const wrap = document.createElement("div");
+        wrap.id = "catalogueScanner";
+        wrap.style = `
+            position:fixed; inset:0; background:rgba(0,0,0,0.88);
+            display:flex; align-items:center; justify-content:center;
+            z-index:999999; padding:20px;
+        `;
 
-        const reader = document.getElementById("reader");
-        reader.innerHTML = `
-            <div id="scanWrap" style="
-                position:relative;width:100%;height:330px;
-                background:#000;border-radius:12px;overflow:hidden;">
-                <video id="scanVideo" autoplay playsinline style="width:100%;height:100%;object-fit:cover"></video>
+        wrap.innerHTML = `
+            <div style="width:100%; max-width:430px; background:#111; border-radius:14px;
+                padding:14px; color:#fff; text-align:center;">
 
-                <!-- Green box -->
-                <div style="
-                    position:absolute;left:14%;top:18%;width:72%;height:60%;
-                    pointer-events:none;">
-                    <div style="position:absolute;left:0;top:0;width:26px;height:26px;border-top:3px solid #22c55e;border-left:3px solid #22c55e"></div>
-                    <div style="position:absolute;right:0;top:0;width:26px;height:26px;border-top:3px solid #22c55e;border-right:3px solid #22c55e"></div>
-                    <div style="position:absolute;left:0;bottom:0;width:26px;height:26px;border-bottom:3px solid #22c55e;border-left:3px solid #22c55e"></div>
-                    <div style="position:absolute;right:0;bottom:0;width:26px;height:26px;border-bottom:3px solid #22c55e;border-right:3px solid #22c55e"></div>
+                <h3 style="margin:0 0 12px;font-size:18px">Scan Barcode</h3>
+
+                <div id="catScanArea" style="
+                    width:100%; height:330px; border-radius:12px; background:#000;
+                    overflow:hidden; position:relative;">
+                    <video id="catScanVideo" autoplay playsinline
+                        style="width:100%;height:100%;object-fit:cover"></video>
+
+                    <div style="position:absolute;left:14%;top:18%;width:72%;height:60%;
+                        pointer-events:none;">
+                        <div style="position:absolute;left:0;top:0;width:26px;height:26px;
+                            border-top:3px solid #22c55e;border-left:3px solid #22c55e"></div>
+                        <div style="position:absolute;right:0;top:0;width:26px;height:26px;
+                            border-top:3px solid #22c55e;border-right:3px solid #22c55e"></div>
+                        <div style="position:absolute;left:0;bottom:0;width:26px;height:26px;
+                            border-bottom:3px solid #22c55e;border-left:3px solid #22c55e"></div>
+                        <div style="position:absolute;right:0;bottom:0;width:26px;height:26px;
+                            border-bottom:3px solid #22c55e;border-right:3px solid #22c55e"></div>
+                    </div>
+
+                    <div id="catLaser" style="
+                        position:absolute;left:18%;right:18%;height:3px;
+                        background:red;opacity:.9;
+                        animation:catLaserMove 1.4s infinite alternate;"></div>
+
+                    <style>@keyframes catLaserMove {0%{top:32%}100%{top:68%}}</style>
                 </div>
 
-                <!-- Laser -->
-                <div id="laserLine" style="
-                    position:absolute;left:16%;right:16%;height:3px;
-                    background:red;opacity:.9;animation:laserScan 1.5s infinite alternate;">
+                <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+                    <select id="catQuality" style="flex:1;padding:8px;border-radius:8px;">
+                        <option value="auto">Auto</option>
+                        <option value="720">720p</option>
+                        <option value="1080">1080p</option>
+                    </select>
+
+                    <button id="catSwitch" style="padding:8px 12px;border-radius:8px;">Camera</button>
+                    <button id="catTorch" style="padding:8px 12px;border-radius:8px;">Torch</button>
+                    <button id="catClose" style="margin-left:auto;padding:8px 12px;border-radius:8px;">Close</button>
                 </div>
-
-                <style>
-                @keyframes laserScan { 0%{ top:30% } 100%{ top:70% } }
-                </style>
-            </div>
-
-            <div style="display:flex;gap:8px;margin-top:10px;">
-                <select id="scanQuality" class="ghost small-btn" style="padding:6px;width:80px">
-                    <option value="auto">Auto</option>
-                    <option value="720">720p</option>
-                    <option value="1080">1080p</option>
-                </select>
-                <button id="switchCam" class="ghost small-btn">Camera</button>
-                <button id="scanTorch" class="ghost small-btn">Torch</button>
-                <button id="closeScanner" class="ghost small-btn" style="margin-left:auto">Close</button>
             </div>
         `;
 
-        document.getElementById("closeScanner").onclick = () => this.close();
-        document.getElementById("switchCam").onclick = () => this.switchCam();
-        document.getElementById("scanQuality").onchange = () => this.restart();
-        document.getElementById("scanTorch").onclick = () => this.toggleTorch();
+        document.body.appendChild(wrap);
+
+        document.getElementById("catClose").onclick = () => this.close();
+        document.getElementById("catTorch").onclick = () => this.toggleTorch();
+        document.getElementById("catSwitch").onclick = () => this.switchCam();
+        document.getElementById("catQuality").onchange = () => this.restart();
 
         await this.start();
     },
 
-    /* ------------------ GET CAMERAS ------------------ */
     async start() {
         this.cams = await navigator.mediaDevices.enumerateDevices();
         this.cams = this.cams.filter(d => d.kind === "videoinput");
 
         if (!this.cams.length) {
-            alert("No camera detected");
+            alert("No camera available");
             return this.close();
         }
 
-        this.cams = this.sort(this.cams);
+        this.cams = this.sortCams(this.cams);
         this.index = 0;
-
         await this.startCam();
     },
 
-    /* ------------------ SELECT CAMERA ------------------ */
     async startCam() {
-        if (this.stream) {
-            this.stream.getTracks().forEach(t => t.stop());
-        }
+        if (this.stream) this.stream.getTracks().forEach(t => t.stop());
 
         const cam = this.cams[this.index];
+        const quality = document.getElementById("catQuality").value;
 
-        const quality = document.getElementById("scanQuality").value;
-        let videoConstraints = { deviceId: { exact: cam.deviceId } };
+        let constraints = { deviceId: { exact: cam.deviceId } };
+        if (quality === "720") constraints.width = { ideal: 1280 };
+        if (quality === "1080") constraints.width = { ideal: 1920 };
 
-        if (quality === "720") videoConstraints.width = { ideal: 1280 };
-        if (quality === "1080") videoConstraints.width = { ideal: 1920 };
+        this.stream = await navigator.mediaDevices.getUserMedia({ video: constraints });
 
-        this.stream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints });
-        const video = document.getElementById("scanVideo");
+        const video = document.getElementById("catScanVideo");
         video.srcObject = this.stream;
 
         this.track = this.stream.getVideoTracks()[0];
 
-        this.autoFocus();
-        this.autofocusTimer = setInterval(() => this.autoFocus(), 2000);
+        this.autoFocusTimer = setInterval(() => this.autoFocus(), 1400);
 
         this.scanLoop();
     },
 
-    /* ------------------ LASER-FAST SCANNING ------------------ */
     async scanLoop() {
-        const video = document.getElementById("scanVideo");
-
         if (!("BarcodeDetector" in window)) {
-            console.log("BarcodeDetector not supported");
-            return this.html5Fallback();
+            console.warn("Fallback mode activated");
+            return this.startFallback();
         }
 
-        const detector = new BarcodeDetector({ formats: ["code_128", "ean_13", "upc_a", "upc_e"] });
+        this.detector = new BarcodeDetector({
+            formats: ["code_128","ean_13","ean_8","qr_code","upc_a","upc_e"]
+        });
+
+        const video = document.getElementById("catScanVideo");
 
         const loop = async () => {
             if (!this.stream) return;
 
             try {
-                const barcodes = await detector.detect(video);
-                if (barcodes.length) {
-                    const code = barcodes[0].rawValue;
-                    this.handleScan(code);
-                    return;
-                }
-            } catch (e) {
-                console.log("Detector error", e);
-            }
+                const codes = await this.detector.detect(video);
+                if (codes.length) return this.handleScan(codes[0].rawValue);
+            } catch {}
 
             requestAnimationFrame(loop);
         };
@@ -800,86 +783,68 @@ let CATSCAN = {
         loop();
     },
 
-    /* ------------------ FALLBACK TO html5-qrcode ------------------ */
-    async html5Fallback() {
-        console.log("Using html5-qrcode fallback");
+    async startFallback() {
+        const area = document.createElement("div");
+        area.id = "catFallback";
+        area.style = "width:100%;height:100%;";
+        document.getElementById("catScanArea").appendChild(area);
 
-        this.fallback = new Html5Qrcode("scanArea");
-        
-        await this.fallback.start(
+        this.fallback = new Html5Qrcode("catFallback");
+        this.fallback.start(
             { deviceId: { exact: this.cams[this.index].deviceId } },
             { fps: 10, qrbox: 250 },
             txt => this.handleScan(txt)
         );
     },
 
-    /* ------------------ SCAN SUCCESS ------------------ */
     handleScan(code) {
         const now = Date.now();
-        if (now - this.last < this.debounce) return;
-        this.last = now;
+        if (now - this.lastScan < this.delay) return;
+        this.lastScan = now;
 
         this.beep();
-        navigator.vibrate?.(150);
+        navigator.vibrate?.(200);
 
         if (this.onScan) this.onScan(code);
 
         this.close();
     },
 
-    /* ------------------ SWITCH CAMERA ------------------ */
     async switchCam() {
         this.index = (this.index + 1) % this.cams.length;
         await this.startCam();
     },
 
-    /* ------------------ TORCH ------------------ */
     async toggleTorch() {
-        if (!this.track) return alert("Torch unsupported");
-
+        if (!this.track) return alert("Torch not supported");
         const caps = this.track.getCapabilities();
-        if (!caps.torch) return alert("Torch not available");
+        if (!caps.torch) return alert("Torch unavailable");
 
-        const on = !this.track._on;
+        const on = !this._torch;
         await this.track.applyConstraints({ advanced: [{ torch: on }] });
-        this.track._on = on;
+        this._torch = on;
     },
 
-    /* ------------------ QUALITY CHANGE ------------------ */
     async restart() {
         await this.startCam();
     },
 
-    /* ------------------ STOP + CLOSE ------------------ */
     async close() {
-        try { clearInterval(this.autofocusTimer); } catch {}
+        clearInterval(this.autoFocusTimer);
         try { if (this.stream) this.stream.getTracks().forEach(t => t.stop()); } catch {}
-        try { if (this.fallback) this.fallback.stop(); } catch {}
+        try { if (this.fallback) await this.fallback.stop(); } catch {}
 
-        const modal = document.getElementById("scanModal");
-        modal.classList.remove("open");
-        modal.setAttribute("aria-hidden","true");
+        const m = document.getElementById("catalogueScanner");
+        if (m) m.remove();
     },
 
-    /* ------------------ CAMERA SORTING ------------------ */
-    sort(list) {
-        const back = list.filter(c => /back|environment/i.test(c.label));
+    sortCams(list) {
+        const back = list.filter(c => /back|rear|environment/i.test(c.label));
         const front = list.filter(c => /front|user/i.test(c.label));
-        const other = list.filter(c => !back.includes(c) && !front.includes(c));
-        return [...back, ...front, ...other];
+        const others = list.filter(c => !back.includes(c) && !front.includes(c));
+        return [...back, ...front, ...others];
     },
 
-    /* ------------------ LOUD BEEP ------------------ */
-    beep() {
-        try {
-            const audio = new Audio();
-            audio.src = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=";
-            audio.volume = 1.0;
-            audio.play();
-        } catch {}
-    },
-
-    /* ------------------ AUTOFOCUS ------------------ */
     autoFocus() {
         try {
             const caps = this.track.getCapabilities();
@@ -887,13 +852,33 @@ let CATSCAN = {
                 this.track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
             }
         } catch {}
+    },
+
+    beep() {
+        try {
+            const audio = new Audio();
+            audio.src =
+              "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=";
+            audio.volume = 1;
+            audio.play();
+        } catch {}
     }
 };
 
-CATSCAN.init();
+/* ----------------------- CONNECT TO YOUR MODAL BUTTON ----------------------- */
+document.getElementById("scanBarcodeBtn").onclick = () => {
+    CAT_BARCODE.open(code => {
+        document.getElementById("pbarcode").value = code;
 
+        const wrap = document.getElementById("barcodeWrap");
+        wrap.innerHTML = "";
+        const svg = document.createElementNS("http://www.w3.org/2000/svg","svg");
+        wrap.appendChild(svg);
+        JsBarcode(svg, code, { format:"CODE128", displayValue:true, height:50 });
 
-
+        showToast("Scanned: " + code);
+    });
+};
 
     
     // utilities
