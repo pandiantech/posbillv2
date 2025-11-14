@@ -638,406 +638,260 @@
       };
       r.readAsText(f);
     });
+/* ============================================================================
+   BARCODE SCANNER — PRO++ (Catalogue)
+   Fast • Accurate • Auto-close • Torch • Switch Camera • HD • Laser
+============================================================================ */
 
-/* ==========================================================
-   CATALOGUE — UNIVERSAL SCANNER PRO++ (drop-in)
-   Paste after html5-qrcode & JsBarcode scripts are loaded.
-   Usage: CATSCAN_PRO.init(); (it auto-wires #scanBarcodeBtn)
-========================================================== */
-(function(){
-  const CATSCAN_PRO = {
-    qr: null,
+let CATSCAN = {
+    scanner: null,
     cams: [],
     index: 0,
+    stream: null,
     track: null,
+    last: 0,
+    debounce: 800,
     autofocusTimer: null,
-    lastScan: 0,
-    debounce: 900,
-    onResult: null,
-    usbBuffer: '',
-    usbTimeout: null,
+    onScan: null,
 
-    init(){
-      const btn = document.getElementById("scanBarcodeBtn");
-      if(btn) btn.addEventListener('click', ()=> this.open(code => {
-        // default callback: fill pbarcode + preview
-        const inp = document.getElementById("pbarcode");
-        if(inp) inp.value = code;
+    /* ------------------ INIT BUTTON ------------------ */
+    init() {
+        document.getElementById("scanBarcodeBtn").onclick = () => {
+            CATSCAN.open(code => {
+                document.getElementById("pbarcode").value = code;
 
-        const wrap = document.getElementById("barcodeWrap");
-        if(wrap){
-          wrap.innerHTML = "";
-          const svg = document.createElementNS("http://www.w3.org/2000/svg","svg");
-          wrap.appendChild(svg);
-          try { JsBarcode(svg, code, { format:"CODE128", displayValue:true, height:50 }); } catch(e){}
-        }
+                const wrap = document.getElementById("barcodeWrap");
+                wrap.innerHTML = "";
+                const svg = document.createElementNS("http://www.w3.org/2000/svg","svg");
+                wrap.appendChild(svg);
+                JsBarcode(svg, code, { format:"CODE128", displayValue:true, height:50 });
 
-        showToast && typeof showToast === 'function' && showToast("Scanned: " + code);
-      }));
+                showToast("Scanned: " + code);
+            });
+        };
     },
 
-    /* ---------- open modal and build UI ---------- */
-    async open(callback){
-      this.onResult = callback || null;
+    /* ------------------ OPEN MODAL ------------------ */
+    async open(callback) {
+        this.onScan = callback;
 
-      const modal = document.getElementById("scanModal");
-      const reader = document.getElementById("reader");
-      if(!modal || !reader) { alert("Scanner modal or reader element missing."); return; }
+        const modal = document.getElementById("scanModal");
+        modal.classList.add("open");
+        modal.setAttribute("aria-hidden","false");
 
-      // ensure modal visible
-      modal.classList.add("open");
-      modal.setAttribute("aria-hidden","false");
+        const reader = document.getElementById("reader");
+        reader.innerHTML = `
+            <div id="scanWrap" style="
+                position:relative;width:100%;height:330px;
+                background:#000;border-radius:12px;overflow:hidden;">
+                <video id="scanVideo" autoplay playsinline style="width:100%;height:100%;object-fit:cover"></video>
 
-      // build inner safe container (html5-qrcode will attach inside #scanArea)
-      reader.innerHTML = `
-        <div id="scanWrap" style="position:relative;width:100%;height:330px;border-radius:12px;overflow:hidden;background:#000;">
-          <div id="scanArea" style="width:100%;height:100%;position:relative;z-index:0;"></div>
+                <!-- Green box -->
+                <div style="
+                    position:absolute;left:14%;top:18%;width:72%;height:60%;
+                    pointer-events:none;">
+                    <div style="position:absolute;left:0;top:0;width:26px;height:26px;border-top:3px solid #22c55e;border-left:3px solid #22c55e"></div>
+                    <div style="position:absolute;right:0;top:0;width:26px;height:26px;border-top:3px solid #22c55e;border-right:3px solid #22c55e"></div>
+                    <div style="position:absolute;left:0;bottom:0;width:26px;height:26px;border-bottom:3px solid #22c55e;border-left:3px solid #22c55e"></div>
+                    <div style="position:absolute;right:0;bottom:0;width:26px;height:26px;border-bottom:3px solid #22c55e;border-right:3px solid #22c55e"></div>
+                </div>
 
-          <!-- Scan box (visual overlay) -->
-          <div style="position:absolute;left:14%;top:18%;width:72%;height:60%;pointer-events:none;z-index:2">
-            <div style="position:absolute;left:0;top:0;width:22px;height:22px;border-top:3px solid #22c55e;border-left:3px solid #22c55e"></div>
-            <div style="position:absolute;right:0;top:0;width:22px;height:22px;border-top:3px solid #22c55e;border-right:3px solid #22c55e"></div>
-            <div style="position:absolute;left:0;bottom:0;width:22px;height:22px;border-bottom:3px solid #22c55e;border-left:3px solid #22c55e"></div>
-            <div style="position:absolute;right:0;bottom:0;width:22px;height:22px;border-bottom:3px solid #22c55e;border-right:3px solid #22c55e"></div>
-          </div>
+                <!-- Laser -->
+                <div id="laserLine" style="
+                    position:absolute;left:16%;right:16%;height:3px;
+                    background:red;opacity:.9;animation:laserScan 1.5s infinite alternate;">
+                </div>
 
-          <!-- Laser -->
-          <div id="proLaser" style="position:absolute;left:16%;right:16%;height:3px;background:red;opacity:.9;z-index:2;animation:proLaserAnim 1.6s infinite alternate;"></div>
+                <style>
+                @keyframes laserScan { 0%{ top:30% } 100%{ top:70% } }
+                </style>
+            </div>
 
-          <style>
-            @keyframes proLaserAnim {0%{top:28%}100%{top:70%}}
-            /* prevent html5-qrcode from breaking out */
-            #scanArea video{object-fit:cover;width:100% !important;height:100% !important;display:block}
-            #scanWrap{contain:paint; -webkit-transform: translateZ(0);} /* help compositing */
-          </style>
-        </div>
+            <div style="display:flex;gap:8px;margin-top:10px;">
+                <select id="scanQuality" class="ghost small-btn" style="padding:6px;width:80px">
+                    <option value="auto">Auto</option>
+                    <option value="720">720p</option>
+                    <option value="1080">1080p</option>
+                </select>
+                <button id="switchCam" class="ghost small-btn">Camera</button>
+                <button id="scanTorch" class="ghost small-btn">Torch</button>
+                <button id="closeScanner" class="ghost small-btn" style="margin-left:auto">Close</button>
+            </div>
+        `;
 
-        <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
-          <select id="proQuality" style="padding:6px;border-radius:6px;border:1px solid #ccc">
-            <option value="auto">Quality: Auto</option>
-            <option value="720">720p</option>
-            <option value="1080">1080p</option>
-          </select>
-          <button id="proSwitch" class="ghost small-btn">Switch</button>
-          <button id="proTorch" class="ghost small-btn">Torch</button>
-          <button id="proClose" class="ghost small-btn" style="margin-left:auto">Close</button>
-        </div>
+        document.getElementById("closeScanner").onclick = () => this.close();
+        document.getElementById("switchCam").onclick = () => this.switchCam();
+        document.getElementById("scanQuality").onchange = () => this.restart();
+        document.getElementById("scanTorch").onclick = () => this.toggleTorch();
 
-        <!-- hidden input to capture USB / keyboard scanner events -->
-        <input id="proUsbCapture" type="text" inputmode="numeric" style="position:absolute;opacity:0;pointer-events:none;left:-9999px;top:-9999px" aria-hidden="true">
-      `;
-
-      // attach controls
-      document.getElementById("proClose").onclick = ()=> this.close();
-      document.getElementById("proSwitch").onclick = ()=> this.switchCam();
-      document.getElementById("proTorch").onclick = ()=> this.toggleTorch();
-      document.getElementById("proQuality").onchange = ()=> this.restart();
-
-      // focus hidden input to capture usb scanner keys
-      const usbInp = document.getElementById("proUsbCapture");
-      usbInp && usbInp.focus();
-
-      // global key listener (fallback) for scanners that emulate keyboard without focusing the input
-      this._boundKeyHandler = event => this._onKeyEvent(event);
-      window.addEventListener('keydown', this._boundKeyHandler, true);
-
-      // also listen on the hidden input (recommended)
-      usbInp && usbInp.addEventListener('input', (e) => {
-        // some scanners fill the whole code at once
-        const v = e.target.value.trim();
-        if(v) {
-          this._processUsbCode(v);
-          e.target.value = '';
-        }
-      });
-
-      // start camera scanning
-      await this.start();
+        await this.start();
     },
 
-    /* ---------- start html5-qrcode scanner ---------- */
-    async start(){
-      if(typeof Html5Qrcode === 'undefined'){ alert("Scanner library missing"); return this.close(); }
+    /* ------------------ GET CAMERAS ------------------ */
+    async start() {
+        this.cams = await navigator.mediaDevices.enumerateDevices();
+        this.cams = this.cams.filter(d => d.kind === "videoinput");
 
-      try {
-        // init instance targeting the div id "scanArea"
-        this.qr = new Html5Qrcode("scanArea", { verbose: false });
+        if (!this.cams.length) {
+            alert("No camera detected");
+            return this.close();
+        }
 
-        // get cameras
-        this.cams = await Html5Qrcode.getCameras();
-        if(!this.cams || !this.cams.length){ alert("No camera detected"); return this.close(); }
-
-        // prioritize back -> front -> others
-        this.cams = this._sortCameras(this.cams);
+        this.cams = this.sort(this.cams);
         this.index = 0;
 
-        await this._startCam();
-      } catch(err){
-        console.error("Scanner start failed", err);
-        alert("Camera start failed: " + (err && err.message ? err.message : err));
+        await this.startCam();
+    },
+
+    /* ------------------ SELECT CAMERA ------------------ */
+    async startCam() {
+        if (this.stream) {
+            this.stream.getTracks().forEach(t => t.stop());
+        }
+
+        const cam = this.cams[this.index];
+
+        const quality = document.getElementById("scanQuality").value;
+        let videoConstraints = { deviceId: { exact: cam.deviceId } };
+
+        if (quality === "720") videoConstraints.width = { ideal: 1280 };
+        if (quality === "1080") videoConstraints.width = { ideal: 1920 };
+
+        this.stream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints });
+        const video = document.getElementById("scanVideo");
+        video.srcObject = this.stream;
+
+        this.track = this.stream.getVideoTracks()[0];
+
+        this.autoFocus();
+        this.autofocusTimer = setInterval(() => this.autoFocus(), 2000);
+
+        this.scanLoop();
+    },
+
+    /* ------------------ LASER-FAST SCANNING ------------------ */
+    async scanLoop() {
+        const video = document.getElementById("scanVideo");
+
+        if (!("BarcodeDetector" in window)) {
+            console.log("BarcodeDetector not supported");
+            return this.html5Fallback();
+        }
+
+        const detector = new BarcodeDetector({ formats: ["code_128", "ean_13", "upc_a", "upc_e"] });
+
+        const loop = async () => {
+            if (!this.stream) return;
+
+            try {
+                const barcodes = await detector.detect(video);
+                if (barcodes.length) {
+                    const code = barcodes[0].rawValue;
+                    this.handleScan(code);
+                    return;
+                }
+            } catch (e) {
+                console.log("Detector error", e);
+            }
+
+            requestAnimationFrame(loop);
+        };
+
+        loop();
+    },
+
+    /* ------------------ FALLBACK TO html5-qrcode ------------------ */
+    async html5Fallback() {
+        console.log("Using html5-qrcode fallback");
+
+        this.fallback = new Html5Qrcode("scanArea");
+        
+        await this.fallback.start(
+            { deviceId: { exact: this.cams[this.index].deviceId } },
+            { fps: 10, qrbox: 250 },
+            txt => this.handleScan(txt)
+        );
+    },
+
+    /* ------------------ SCAN SUCCESS ------------------ */
+    handleScan(code) {
+        const now = Date.now();
+        if (now - this.last < this.debounce) return;
+        this.last = now;
+
+        this.beep();
+        navigator.vibrate?.(150);
+
+        if (this.onScan) this.onScan(code);
+
         this.close();
-      }
     },
 
-    async _startCam(){
-      const cam = this.cams[this.index];
-      const quality = (document.getElementById("proQuality") || {}).value || 'auto';
-      const config = { fps: 12, qrbox: { width: 280, height: 140 } };
-
-      if(quality === '720') config.videoConstraints = { height: { ideal: 720 } };
-      if(quality === '1080') config.videoConstraints = { height: { ideal: 1080 } };
-
-      // be careful: html5-qrcode.start may throw if access denied
-      await this.qr.start({ deviceId: { exact: cam.id } }, config, (decoded) => this._onDecoded(decoded), (err) => { /* errors ignored */ });
-
-      // wait a moment then prepare track for torch & autofocus
-      setTimeout(()=> this._prepareTrack(), 600);
+    /* ------------------ SWITCH CAMERA ------------------ */
+    async switchCam() {
+        this.index = (this.index + 1) % this.cams.length;
+        await this.startCam();
     },
 
-    async _prepareTrack(){
-      try {
-        const video = document.querySelector("#scanArea video");
-        if(video && video.srcObject && video.srcObject.getVideoTracks().length){
-          this.track = video.srcObject.getVideoTracks()[0];
+    /* ------------------ TORCH ------------------ */
+    async toggleTorch() {
+        if (!this.track) return alert("Torch unsupported");
 
-          // autofocus attempts every 2s (best-effort)
-          this._autoFocusOnce();
-          try{ this.autofocusTimer = setInterval(()=> this._autoFocusOnce(), 2000); } catch(e){}
-        } else this.track = null;
-      } catch(e){ this.track = null; }
-    },
+        const caps = this.track.getCapabilities();
+        if (!caps.torch) return alert("Torch not available");
 
-    _autoFocusOnce(){
-      try {
-        if(!this.track) return;
-        const caps = this.track.getCapabilities ? this.track.getCapabilities() : {};
-        if(caps && caps.focusMode && caps.focusMode.includes('continuous')){
-          this.track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(()=>{});
-        }
-      } catch(e){}
-    },
-
-    /* ---------- decoded handler ---------- */
-    async _onDecoded(raw){
-      const now = Date.now();
-      if(now - this.lastScan < this.debounce) return;
-      this.lastScan = now;
-
-      const code = (raw||'').toString().trim();
-      if(!code) return;
-
-      // beep + vibrate
-      this._beep();
-      try{ navigator.vibrate && navigator.vibrate(120); } catch(e){}
-
-      // try find product in your dataset (expects global 'products' array)
-      const found = this._findProductByBarcode(code);
-
-      // If a product exists, call callback and CLOSE scanner (auto-close only on product found)
-      if(found){
-        // callback (fill input etc)
-        try { if(this.onResult) this.onResult(code); } catch(e){ console.warn(e); }
-
-        // small delay so UI shows beep/vibrate before closing
-        setTimeout(()=> { this.close(); }, 220);
-      } else {
-        // product not found: play "error" short beep & keep scanning
-        this._beepError();
-        showToast && typeof showToast === 'function' && showToast("Product not found: " + code);
-        // do not close; allow continuous scanning
-      }
-    },
-
-    /* ---------- find product helper (change if your store uses a different structure) ---------- */
-    _findProductByBarcode(code){
-      try {
-        if(typeof products === 'undefined' || !Array.isArray(products)) return null;
-        return products.find(p => (p.barcode||'').toString() === code.toString()) || null;
-      } catch(e){ return null; }
-    },
-
-    /* ---------- switch camera ---------- */
-    async switchCam(){
-      try {
-        await this._stopQuiet();
-        this.index = (this.index + 1) % (this.cams.length || 1);
-        await this._startCam();
-      } catch(e){ console.warn(e); }
-    },
-
-    /* ---------- toggle torch ---------- */
-    async toggleTorch(){
-      if(!this.track) return alert("Torch unsupported on this camera");
-      try {
-        const caps = this.track.getCapabilities ? this.track.getCapabilities() : {};
-        if(!caps.torch) return alert("Torch not available");
-        const on = !this.track._torchOn;
+        const on = !this.track._on;
         await this.track.applyConstraints({ advanced: [{ torch: on }] });
-        this.track._torchOn = on;
-      } catch(e){ alert("Torch error"); }
+        this.track._on = on;
     },
 
-    /* ---------- restart (quality change) ---------- */
-    async restart(){
-      await this._stopQuiet();
-      await this._startCam();
+    /* ------------------ QUALITY CHANGE ------------------ */
+    async restart() {
+        await this.startCam();
     },
 
-    /* ---------- stop quietly (used when switching) ---------- */
-    async _stopQuiet(){
-      try { clearInterval(this.autofocusTimer); } catch(e){}
-      try { if(this.qr) await this.qr.stop(); } catch(e){}
-      try { if(this.qr) this.qr.clear(); } catch(e){}
-      try { if(this.track) this.track.stop(); } catch(e){}
-      // also remove any leftover video srcObject
-      try {
-        const video = document.querySelector("#scanArea video");
-        if(video && video.srcObject){
-          const tracks = video.srcObject.getTracks() || [];
-          tracks.forEach(t=>{ try{ t.stop(); } catch(e){} });
-          try{ video.srcObject = null; } catch(e){}
-        }
-      } catch(e){}
-    },
+    /* ------------------ STOP + CLOSE ------------------ */
+    async close() {
+        try { clearInterval(this.autofocusTimer); } catch {}
+        try { if (this.stream) this.stream.getTracks().forEach(t => t.stop()); } catch {}
+        try { if (this.fallback) this.fallback.stop(); } catch {}
 
-    /* ---------- full close & cleanup ---------- */
-    async close(){
-      try {
-        await this._stopQuiet();
-      } catch(e){}
-      // remove event listeners and usb capture
-      try { window.removeEventListener('keydown', this._boundKeyHandler, true); } catch(e){}
-      this._boundKeyHandler = null;
-
-      // clear reader to ensure html5-qrcode cannot inject video outside
-      try {
-        const reader = document.getElementById("reader");
-        if(reader) reader.innerHTML = '';
-      } catch(e){}
-
-      const modal = document.getElementById("scanModal");
-      if(modal){
+        const modal = document.getElementById("scanModal");
         modal.classList.remove("open");
         modal.setAttribute("aria-hidden","true");
-      }
     },
 
-    /* ---------- camera sorting ---------- */
-    _sortCameras(list){
-      const back = list.filter(c => /back|rear|environment/i.test(c.label || ''));
-      const front = list.filter(c => /front|user/i.test(c.label || ''));
-      const others = list.filter(c => !back.includes(c) && !front.includes(c));
-      // If labels are empty, keep original order but prefer first as back
-      return [...back, ...front, ...others];
+    /* ------------------ CAMERA SORTING ------------------ */
+    sort(list) {
+        const back = list.filter(c => /back|environment/i.test(c.label));
+        const front = list.filter(c => /front|user/i.test(c.label));
+        const other = list.filter(c => !back.includes(c) && !front.includes(c));
+        return [...back, ...front, ...other];
     },
 
-    /* ---------- loud beep (with ramp) ---------- */
-    _beep(){
-      try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        // resume if suspended (user gesture likely happened on scan button click)
-        if(ctx.state === 'suspended' && typeof ctx.resume === 'function'){
-          ctx.resume().catch(()=>{});
-        }
-        const o = ctx.createOscillator();
-        const g = ctx.createGain();
-        o.type = 'square';
-        o.frequency.value = 1400;
-        // start very quiet and ramp up quickly to avoid clicks
-        g.gain.setValueAtTime(0.0001, ctx.currentTime);
-        g.gain.linearRampToValueAtTime(0.6, ctx.currentTime + 0.02); // loud
-        o.connect(g); g.connect(ctx.destination);
-        o.start();
-        setTimeout(()=>{
-          g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.05);
-          try{ o.stop(); } catch(e){}
-          try{ ctx.close(); } catch(e){}
-        }, 180);
-      } catch(e){}
+    /* ------------------ LOUD BEEP ------------------ */
+    beep() {
+        try {
+            const audio = new Audio();
+            audio.src = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=";
+            audio.volume = 1.0;
+            audio.play();
+        } catch {}
     },
 
-    /* ---------- short error beep (soft) ---------- */
-    _beepError(){
-      try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        if(ctx.state === 'suspended' && typeof ctx.resume === 'function') ctx.resume().catch(()=>{});
-        const o = ctx.createOscillator();
-        const g = ctx.createGain();
-        o.type = 'sine';
-        o.frequency.value = 700;
-        g.gain.setValueAtTime(0.0001, ctx.currentTime);
-        g.gain.linearRampToValueAtTime(0.18, ctx.currentTime + 0.01);
-        o.connect(g); g.connect(ctx.destination);
-        o.start();
-        setTimeout(()=>{ g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.02); try{o.stop();}catch(e){} try{ctx.close();}catch(e){} }, 120);
-      } catch(e){}
-    },
-
-    /* ---------- USB / keyboard scanner capture ---------- */
-    _onKeyEvent(e){
-      // Most hardware scanners act like keyboard: they send digits then Enter.
-      // We'll capture digits and punctuation, and process on Enter.
-      // Ignore if modifier keys used (user typing)
-      if(e.altKey || e.ctrlKey || e.metaKey) return;
-
-      const key = e.key;
-
-      // If modal not open, ignore
-      const modal = document.getElementById("scanModal");
-      if(!modal || modal.getAttribute("aria-hidden") === 'true') { this.usbBuffer=''; return; }
-
-      // If Enter -> process buffer
-      if(key === 'Enter'){
-        const code = this.usbBuffer.trim();
-        this.usbBuffer = '';
-        if(code) {
-          // slight async gap to mimic camera detection timing
-          setTimeout(()=> this._processUsbCode(code), 10);
-        }
-        // prevent page submit while scanning
-        e.preventDefault();
-        return;
-      }
-
-      // Accept digits and common barcode chars
-      if(/^[0-9A-Za-z\-\._\/\s]$/.test(key)){
-        this.usbBuffer += key;
-        // reset buffer timeout (in case scanner sends slowly)
-        if(this.usbTimeout) clearTimeout(this.usbTimeout);
-        this.usbTimeout = setTimeout(()=> { this.usbBuffer = ''; }, 1200);
-        // prevent propagation when modal open
-        e.preventDefault();
-      }
-    },
-
-    _processUsbCode(code){
-      // emulate same flow as camera decode
-      const now = Date.now();
-      if(now - this.lastScan < this.debounce) return;
-      this.lastScan = now;
-
-      this._beep();
-      try{ navigator.vibrate && navigator.vibrate(120); } catch(e){}
-
-      const found = this._findProductByBarcode(code);
-      if(found){
-        try { if(this.onResult) this.onResult(code); } catch(e){}
-        // close after a brief moment
-        setTimeout(()=> this.close(), 180);
-      } else {
-        this._beepError();
-        showToast && typeof showToast === 'function' && showToast("Product not found: " + code);
-      }
+    /* ------------------ AUTOFOCUS ------------------ */
+    autoFocus() {
+        try {
+            const caps = this.track.getCapabilities();
+            if (caps.focusMode?.includes("continuous")) {
+                this.track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
+            }
+        } catch {}
     }
-  };
+};
 
-  // expose globally for debugging and manual control
-  window.CATSCAN_PRO = CATSCAN_PRO;
+CATSCAN.init();
 
-  // init automatically (wires button)
-  try { CATSCAN_PRO.init(); } catch(e){ console.warn('CATSCAN_PRO.init failed', e); }
-
-})();
 
 
 
