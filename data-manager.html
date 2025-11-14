@@ -5,338 +5,567 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Data Manager — Pandian Tech Service</title>
 <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
-
 <style>
-:root{
-  --bg:#f8fafc;
-  --card:#fff;
-  --text:#111827;
-  --muted:#6b7280;
-  --accent:#2563eb;
-  --danger:#dc2626;
-}
-*{box-sizing:border-box;}
-body{
-  font-family:'Quicksand',sans-serif;
-  margin:0;
-  background:var(--bg);
-  color:var(--text);
-}
-.wrap{
-  max-width:1100px;
-  margin:20px auto 40px; /* top margin preserved */
-  padding:16px;
-}
-.btn{
-  padding:10px 14px;
-  border-radius:10px;
-  border:0;
-  cursor:pointer;
-  font-weight:700;
-  font-size:14px;
-}
-.btn.primary{background:var(--accent);color:#fff;box-shadow:0 6px 18px rgba(37,99,235,0.12);}
-.btn.ghost{background:transparent;border:1px solid #e6e6e9;color:var(--text);}
-.btn.warn{background:var(--danger);color:#fff;}
-.card{
-  background:var(--card);
-  padding:14px;
-  border-radius:12px;
-  box-shadow:0 6px 22px rgba(15,23,42,0.04);
-  margin-bottom:16px;
-}
-.summary{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
-.summary .box{
-  flex:1 1 160px;
-  background:#fff;
-  border:1px solid #eee;
-  border-radius:10px;
-  padding:12px;
-  text-align:center;
-}
-.summary strong{display:block;font-size:18px;}
-.muted{color:var(--muted);font-size:13px;}
-.history-row{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:8px 0;
-  border-bottom:1px solid #f3f3f3;
-  flex-wrap:wrap;
-  gap:6px;
-}
-.progress-wrap{
-  height:10px;
-  background:#f1f5f9;
-  border-radius:8px;
-  overflow:hidden;
-  margin-top:8px;
-}
-.progress{
-  height:100%;
-  width:0;
-  background:linear-gradient(90deg,var(--accent),#4f46e5);
-}
-@media(max-width:720px){.summary{flex-direction:column;}}
+  :root{
+    --bg:#f6f9fb;
+    --card:#fff;
+    --muted:#6b7280;
+    --text:#0f1724;
+    --accent:#2563eb; /* blue */
+    --accent-2:#059669; /* green */
+    --danger:#ef4444; /* red */
+    --radius:12px;
+    --shadow:0 8px 20px rgba(15,23,42,0.06);
+  }
+  *{box-sizing:border-box}
+  body{font-family:'Quicksand',sans-serif;margin:0;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1100px;margin:18px auto;padding:18px}
+  h1{font-size:24px;margin:0 0 6px}
+  p.lead{margin:0;color:var(--muted);font-size:13px}
+
+  .card{background:var(--card);border-radius:var(--radius);padding:16px;margin-top:14px;box-shadow:var(--shadow)}
+  .grid-top{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+  .stat{padding:18px;border-radius:10px;background:#fbfdff;border:1px solid #eef3ff;text-align:center}
+  .stat small{display:block;color:var(--muted);font-size:13px}
+  .stat strong{display:block;font-size:20px;margin-top:8px}
+
+  .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
+  .btn{padding:10px 14px;border-radius:10px;border:0;background:var(--accent);color:#fff;font-weight:700;cursor:pointer;box-shadow:0 6px 18px rgba(37,99,235,0.12)}
+  .btn.ghost{background:#fff;color:var(--text);border:1px solid #e6e9f2;box-shadow:none;font-weight:600}
+  .btn.warn{background:var(--danger)}
+  .btn.small{padding:8px 10px;font-size:14px;border-radius:8px}
+  .inline{display:inline-flex;gap:8px;align-items:center}
+
+  .hr{height:6px;background:linear-gradient(90deg,#eef6ff 0%, #fff 100%);border-radius:999px;margin:12px 0}
+
+  label{font-size:13px;color:var(--muted);margin-right:6px}
+  input[type="text"], input[type="number"], input[type="email"]{
+    padding:8px 10px;border-radius:8px;border:1px solid #e6e9f2;background:#fff;font-size:14px
+  }
+
+  .history{margin-top:14px;min-height:80px}
+  .history .row{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:10px;border-radius:10px;border:1px solid #f1f5f9;background:#fff;margin-bottom:8px}
+  .history .row small{color:var(--muted)}
+  .badge{padding:6px 8px;border-radius:999px;background:#f3f6ff;color:var(--accent);font-weight:700;font-size:13px}
+
+  /* small modal / toast */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:none;align-items:center;justify-content:center;z-index:12000}
+  .modal-overlay.active{display:flex}
+  .modal{background:#fff;padding:18px;border-radius:12px;max-width:520px;width:94%;box-shadow:0 14px 40px rgba(2,6,23,0.2)}
+  .modal h3{margin:0 0 8px}
+  .modal p{color:var(--muted);margin:0 0 12px}
+
+  .toast{position:fixed;right:18px;bottom:18px;background:#111827;color:#fff;padding:10px 12px;border-radius:8px;box-shadow:0 6px 18px rgba(2,6,23,0.2);display:none;z-index:13000}
+  .toast.show{display:block}
+
+  /* responsive */
+  @media(max-width:980px){
+    .grid-top{grid-template-columns:1fr}
+    .stat small{font-size:12px}
+    .controls{flex-direction:column;align-items:stretch}
+  }
 </style>
 </head>
-
 <body>
 <div class="wrap">
+
   <h1>Data Manager — Pandian Tech Service</h1>
-  <div class="muted">Complete backup & restore system — includes Billing, Service, Monitor, Catalogue, Customers, and Settings.</div>
+  <p class="lead">Complete backup & restore system — includes Billing, Service, Monitor, Catalogue, Customers, Settings and all local data.</p>
 
   <div class="card">
-    <div class="summary">
-      <div class="box"><small>Total Keys</small><strong id="keyCount">0</strong></div>
-      <div class="box"><small>Last Backup</small><strong id="lastBackup">—</strong></div>
-      <div class="box"><small>Status</small><strong id="statusText">Idle</strong></div>
+    <div class="grid-top" id="topStats">
+      <div class="stat">
+        <small>Total Keys</small>
+        <strong id="totalKeys">—</strong>
+      </div>
+      <div class="stat">
+        <small>Last Backup</small>
+        <strong id="lastBackup">—</strong>
+      </div>
+      <div class="stat">
+        <small>Status</small>
+        <strong id="statusReady">Ready</strong>
+      </div>
     </div>
-    <div class="progress-wrap"><div id="progressBar" class="progress"></div></div>
 
-    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px">
-      <button id="backupBtn" class="btn primary">💾 Create Backup</button>
-      <button id="restoreBtn" class="btn ghost">♻️ Restore From File</button>
-      <button id="exportBtn" class="btn ghost">📤 Export All</button>
-      <button id="importBtn" class="btn ghost">📥 Import JSON</button>
-      <button id="clearBtn" class="btn warn">🗑️ Clear All</button>
+    <div class="hr"></div>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <button id="createBackup" class="btn">💾 Create Backup</button>
+        <button id="restoreFromFile" class="btn ghost">♻️ Restore From File</button>
+        <button id="exportAll" class="btn ghost">📤 Export All</button>
+        <button id="importJson" class="btn ghost">📥 Import JSON</button>
+        <button id="clearAll" class="btn warn">🗑 Clear All</button>
+      </div>
+
+      <div style="display:flex;gap:8px;align-items:center">
+        <label for="gdriveEmail">GDrive Email</label>
+        <input id="gdriveEmail" type="email" placeholder="you@gmail.com" style="width:220px">
+        <button id="saveGmail" class="btn small">Save</button>
+      </div>
     </div>
 
-    <div style="margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-      <label style="display:flex;align-items:center;gap:6px">
-        <input type="checkbox" id="autoToggle"> Auto Backup
-      </label>
-      <label class="small">
-        Every <input type="number" id="interval" min="1" value="10"
-        style="width:60px;padding:5px;border-radius:6px;border:1px solid #ddd"> min
-      </label>
-      <button id="runNow" class="btn ghost">▶ Run Now</button>
-      <div id="autoStatus" class="small muted">Auto: OFF</div>
+    <div style="display:flex;gap:12px;align-items:center;margin-top:12px;flex-wrap:wrap">
+      <label><input id="autoBackupToggle" type="checkbox"> Auto Backup Every</label>
+      <input id="autoBackupMins" type="number" min="1" value="10" style="width:70px">
+      <label>min</label>
+      <button id="runNow" class="btn small">▶ Run Now</button>
+      <div style="flex:1"></div>
+      <div style="color:var(--muted);font-size:13px">Auto: <span id="autoStatus">OFF</span></div>
+    </div>
+
+    <div class="history">
+      <h3 style="margin:12px 0 8px 0">Backup History</h3>
+      <div id="historyList">
+        <div style="color:var(--muted)">No backups yet.</div>
+      </div>
     </div>
   </div>
 
-  <div class="card">
-    <h3>Backup History</h3>
-    <div class="muted small">
-      Backups are exported as .json files — unlimited size. All system pages included.
+</div>
+
+<!-- Hidden file inputs -->
+<input id="fileInputRestore" type="file" accept="application/json" style="display:none">
+<input id="fileInputImport" type="file" accept="application/json" style="display:none">
+
+<!-- Modal confirm/notes -->
+<div id="modal" class="modal-overlay" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true">
+    <h3 id="modalTitle">Title</h3>
+    <p id="modalMsg">Message</p>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px">
+      <button id="modalOk" class="btn">OK</button>
+      <button id="modalCancel" class="btn ghost">Cancel</button>
     </div>
-    <div id="historyList" style="margin-top:8px"></div>
   </div>
 </div>
 
+<div id="toast" class="toast">Message</div>
+
 <script>
 (() => {
-  const $=id=>document.getElementById(id);
-  const progressBar=$('progressBar');
-  const statusText=$('statusText');
-  const keyCount=$('keyCount');
-  const lastBackup=$('lastBackup');
-  const historyList=$('historyList');
-  const backupHistoryKey='pandian_backup_history_v4';
-  const idle=ms=>new Promise(r=>setTimeout(r,ms||10));
-  const progress=p=>progressBar.style.width=p+'%';
-  const setStatus=t=>statusText.innerText=t;
-  let autoTimer=null;
+  // -----------------------
+  // Configuration & Keys
+  // -----------------------
+  const BACKUP_HISTORY_KEY = 'pts_backup_history';
+  const GDRIVE_EMAIL_KEY = 'pts_gdrive_email';
+  const AUTO_BACKUP_KEY = 'pts_auto_backup';
+  const AUTO_INTERVAL_KEY = 'pts_auto_interval_mins';
 
-  function getAllKeys(){
-    const keys=new Set();
-    for(let i=0;i<localStorage.length;i++){
-      const k=localStorage.key(i);
-      if(!k||k===backupHistoryKey)continue;
-      keys.add(k);
-    }
-    ['service','monitor','customers','catalogue','billing','settings','device','inventory','repairs']
-      .forEach(p=>{
-        for(let i=0;i<localStorage.length;i++){
-          const k=localStorage.key(i);
-          if(k && k.toLowerCase().includes(p)) keys.add(k);
-        }
-      });
-    keyCount.innerText=keys.size;
-    return Array.from(keys);
-  }
-
-  async function createBackupFile(){
-    try{
-      const keys=getAllKeys();
-      const all={};
-      setStatus('Collecting data...'); progress(5);
-      for(let i=0;i<keys.length;i++){
-        const k=keys[i];
-        try{
-          const raw=localStorage.getItem(k);
-          try{all[k]=JSON.parse(raw);}catch{all[k]=raw;}
-        }catch{all[k]=null;}
-        if(i%10===0)await idle(5);
-        progress(Math.round((i/keys.length)*85));
+  // We'll collect ALL localStorage keys (so nothing gets missed)
+  function collectAllLocalStorage() {
+    const out = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      try {
+        // attempt to parse JSON values to keep native types
+        const raw = localStorage.getItem(k);
+        try { out[k] = JSON.parse(raw); } catch { out[k] = raw; }
+      } catch (e) {
+        // if reading corrupted key, store raw
+        out[k] = null;
       }
-      const blob=new Blob([JSON.stringify(all,null,2)],{type:'application/json'});
-      const filename=`Pandian_FullBackup_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.json`;
-      const a=document.createElement('a');
-      a.href=URL.createObjectURL(blob);
-      a.download=filename;
-      a.click();
-
-      const hist=JSON.parse(localStorage.getItem(backupHistoryKey)||'[]');
-      hist.unshift({id:Date.now(),time:new Date().toLocaleString(),file:filename});
-      if(hist.length>20)hist.length=20;
-      localStorage.setItem(backupHistoryKey,JSON.stringify(hist));
-      renderHistory();
-      lastBackup.innerText=new Date().toLocaleString();
-      setStatus('✅ Backup exported');
-      progress(100);
-      await idle(500);
-      progress(0);
-    }catch(e){
-      alert('Backup failed: '+e.message);
-      setStatus('❌ Error');
-      progress(0);
     }
+    return out;
   }
 
-  function restoreFromFile(){
-    const inp=document.createElement('input');
-    inp.type='file';
-    inp.accept='application/json';
-    inp.onchange=e=>{
-      const f=e.target.files[0];
-      if(!f)return;
-      const reader=new FileReader();
-      reader.onload=async ev=>{
-        try{
-          const data=JSON.parse(ev.target.result);
-          if(!confirm('Restore this backup? This will overwrite all app data.'))return;
-          const keys=Object.keys(data);
-          setStatus('Restoring data...');progress(10);
-          for(let i=0;i<keys.length;i++){
-            const k=keys[i];const v=data[k];
-            if(v===null)localStorage.removeItem(k);
-            else if(typeof v==='string')localStorage.setItem(k,v);
-            else localStorage.setItem(k,JSON.stringify(v));
-            if(i%10===0)await idle(5);
-            progress(Math.round((i/keys.length)*85));
-          }
-          progress(100);
-          await idle(200);
-          setStatus('✅ Restore complete — reload pages.');
-          progress(0);
-        }catch(err){
-          alert('Restore failed: '+err.message);
-        }
-      };
-      reader.readAsText(f);
+  // -----------------------
+  // UI helpers
+  // -----------------------
+  const $ = id => document.getElementById(id);
+  function showToast(msg, t=2400) {
+    const el = $('toast'); el.textContent = msg; el.classList.add('show');
+    clearTimeout(showToast._t); showToast._t = setTimeout(()=>el.classList.remove('show'), t);
+  }
+  function showModal(title, msg, onOk=null, onCancel=null) {
+    $('modalTitle').innerText = title; $('modalMsg').innerText = msg;
+    $('modal').classList.add('active'); $('modal').setAttribute('aria-hidden','false');
+    function cleanup(){
+      $('modal').classList.remove('active'); $('modal').setAttribute('aria-hidden','true');
+      $('modalOk').onclick = null; $('modalCancel').onclick = null;
+    }
+    $('modalOk').onclick = () => { try{ onOk && onOk(); } finally { cleanup(); } };
+    $('modalCancel').onclick = () => { try{ onCancel && onCancel(); } finally { cleanup(); } };
+  }
+
+  // -----------------------
+  // backup filename helper
+  // -----------------------
+  function filenameForNow() {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,'0');
+    const day = String(d.getDate()).padStart(2,'0');
+    const hh = String(d.getHours()).padStart(2,'0');
+    const mm = String(d.getMinutes()).padStart(2,'0');
+    const ss = String(d.getSeconds()).padStart(2,'0');
+    return `PTS_Backup_${y}${m}${day}_${hh}${mm}${ss}.json`;
+  }
+
+  // -----------------------
+  // create backup (gathers all localStorage keys -> JSON blob)
+  // returns { blob, meta }
+  // -----------------------
+  function createBackupBlob() {
+    const data = collectAllLocalStorage();
+    // we'll also add simple metadata
+    const meta = {
+      createdAt: new Date().toISOString(),
+      keysCount: Object.keys(data).length,
+      sizeEstimate: null
     };
-    inp.click();
+    const content = { meta, data };
+    const json = JSON.stringify(content, null, 2);
+    const blob = new Blob([json], {type:'application/json'});
+    meta.sizeEstimate = blob.size;
+    return { blob, meta, json };
   }
 
-  function exportAll(){
-    const keys=getAllKeys();const obj={};
-    for(const k of keys){
-      try{
-        const raw=localStorage.getItem(k);
-        try{obj[k]=JSON.parse(raw);}catch{obj[k]=raw;}
-      }catch{}
-    }
-    const blob=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'});
-    const a=document.createElement('a');
-    a.href=URL.createObjectURL(blob);
-    a.download=`Pandian_Export_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.json`;
+  // -----------------------
+  // download backup and open Drive (Option A)
+  // -----------------------
+  function downloadAndOpenDrive(blob, filename) {
+    // create download link and click it
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
     a.click();
-  }
+    setTimeout(()=>{ try{ a.remove(); } catch(e){} URL.revokeObjectURL(url); }, 2000);
 
-  function importJSON(){
-    const inp=document.createElement('input');
-    inp.type='file';
-    inp.accept='application/json';
-    inp.onchange=e=>{
-      const f=e.target.files[0];
-      if(!f)return;
-      const reader=new FileReader();
-      reader.onload=ev=>{
-        try{
-          const data=JSON.parse(ev.target.result);
-          if(!confirm('Import this data? It will merge with current data.'))return;
-          for(const k in data){
-            const v=data[k];
-            if(v===null)localStorage.removeItem(k);
-            else if(typeof v==='string')localStorage.setItem(k,v);
-            else localStorage.setItem(k,JSON.stringify(v));
-          }
-          setStatus('✅ Import done');
-          getAllKeys();
-        }catch(err){alert('Import failed: '+err.message);}
-      };
-      reader.readAsText(f);
-    };
-    inp.click();
-  }
+    // Now open Google Drive in a new tab/window.
+    // Desktop -> open drive web
+    // Mobile -> try to open app via intent then fallback to web
+    const driveWeb = 'https://drive.google.com/drive/my-drive';
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-  function clearAll(){
-    if(!confirm('⚠️ This will clear ALL app data (except backups). Continue?'))return;
-    for(let i=0;i<localStorage.length;i++){
-      const k=localStorage.key(i);
-      if(k!==backupHistoryKey)localStorage.removeItem(k);
+    // Attempt to open app on Android via intent (works in many browsers)
+    if (isAndroid) {
+      try {
+        // open intent (best-effort). Use timeout fallback to web.
+        const intentUrl = 'intent://drive.google.com/drive/my-drive#Intent;package=com.google.android.apps.docs;scheme=https;end';
+        const w = window.open(intentUrl, '_blank');
+        // always open web fallback as well after short delay in a new tab to ensure user can upload
+        setTimeout(()=> { window.open(driveWeb, '_blank'); }, 1200);
+      } catch (e) {
+        window.open(driveWeb, '_blank');
+      }
+    } else if (isIOS) {
+      // iOS: try to open googledrive:// URL scheme; many apps don't support it - fallback to web
+      try {
+        const scheme = 'googledrive://';
+        const now = Date.now();
+        const opened = window.open(scheme, '_blank');
+        // fallback after short delay
+        setTimeout(()=> {
+          // open web view as fallback
+          window.open(driveWeb, '_blank');
+        }, 900);
+      } catch (e) {
+        window.open(driveWeb, '_blank');
+      }
+    } else {
+      // Desktop
+      window.open(driveWeb, '_blank');
     }
-    setStatus('🗑️ Cleared all data');
-    getAllKeys();
   }
 
-  function renderHistory(){
-    const hist=JSON.parse(localStorage.getItem(backupHistoryKey)||'[]');
-    historyList.innerHTML='';
-    if(!hist.length){
-      historyList.innerHTML='<div class="muted small">No backups yet.</div>';
+  // -----------------------
+  // save backup metadata (history)
+  // -----------------------
+  function pushBackupHistory(item) {
+    const hist = JSON.parse(localStorage.getItem(BACKUP_HISTORY_KEY) || '[]');
+    hist.unshift(item);
+    // keep last 30 history entries
+    if (hist.length > 30) hist.length = 30;
+    localStorage.setItem(BACKUP_HISTORY_KEY, JSON.stringify(hist));
+    renderHistory();
+  }
+
+  // -----------------------
+  // Main action: create backup, download & open drive
+  // -----------------------
+  function runCreateBackup(openDrive=true) {
+    try {
+      const { blob, meta, json } = createBackupBlob();
+      const fname = filenameForNow();
+      // save small metadata for last backup
+      localStorage.setItem('pts_last_backup_meta', JSON.stringify({ filename: fname, createdAt: new Date().toISOString(), size: meta.sizeEstimate, keys: meta.keysCount }));
+      // push history (store small record only)
+      pushBackupHistory({ filename: fname, createdAt: new Date().toISOString(), size: meta.sizeEstimate, keys: meta.keysCount });
+      // download and open drive
+      downloadAndOpenDrive(blob, fname);
+      // update UI
+      $('lastBackup').innerText = new Date().toLocaleString();
+      showToast('Backup created and download started');
+    } catch (err) {
+      console.error('Backup failed', err);
+      showModal('Backup Failed', 'Backup creation failed: ' + (err && err.message ? err.message : String(err)));
+    }
+  }
+
+  // -----------------------
+  // Export All button (download a backup file without opening drive)
+  // -----------------------
+  function exportAllDownload() {
+    try {
+      const { blob } = createBackupBlob();
+      const fname = filenameForNow();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = fname; document.body.appendChild(a); a.click();
+      setTimeout(()=>{ try{ a.remove(); } catch(e){} URL.revokeObjectURL(url); }, 1500);
+      showToast('Export started');
+      pushBackupHistory({ filename: fname, createdAt: new Date().toISOString(), size: blob.size, keys: Object.keys(collectAllLocalStorage()).length });
+      $('lastBackup').innerText = new Date().toLocaleString();
+    } catch (err) {
+      console.error(err); showToast('Export failed');
+    }
+  }
+
+  // -----------------------
+  // Restore / Import functions
+  // -----------------------
+  function handleFileMerge(file, opts={merge:true}) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const parsed = JSON.parse(e.target.result);
+        // Allow two possible shapes:
+        // 1) full file with {meta, data}
+        // 2) flat object with keys => value pairs
+        const incomingData = parsed && parsed.data ? parsed.data : parsed;
+        if (typeof incomingData !== 'object') throw new Error('Invalid backup JSON');
+        // Confirm merge or replace
+        if (opts.merge) {
+          // merge: only set keys from incoming; do not delete existing keys
+          Object.keys(incomingData).forEach(k => {
+            try {
+              const v = incomingData[k];
+              if (typeof v === 'object') localStorage.setItem(k, JSON.stringify(v));
+              else localStorage.setItem(k, String(v));
+            } catch (e) {
+              console.warn('setItem fail for key', k, e);
+            }
+          });
+          showToast('Restore (merge) complete');
+        } else {
+          // replace: clear all and set incoming
+          localStorage.clear();
+          Object.keys(incomingData).forEach(k => {
+            try {
+              const v = incomingData[k];
+              if (typeof v === 'object') localStorage.setItem(k, JSON.stringify(v));
+              else localStorage.setItem(k, String(v));
+            } catch (e) {
+              console.warn('setItem fail for key', k, e);
+            }
+          });
+          showToast('Restore (replace) complete');
+        }
+        // push small history record
+        pushBackupHistory({ filename: file.name, createdAt: new Date().toISOString(), size: file.size, keys: Object.keys(incomingData).length });
+        // notify other tabs
+        window.dispatchEvent(new Event('storage'));
+        renderStats();
+      } catch (err) {
+        console.error(err);
+        showModal('Restore failed', err.message || String(err));
+      }
+    };
+    reader.onerror = e => {
+      showModal('Read Error', 'Unable to read file');
+    };
+    reader.readAsText(file);
+  }
+
+  // -----------------------
+  // Clear all known keys (with confirmation)
+  // -----------------------
+  function clearAllData() {
+    showModal('Clear All Data', 'This will remove all stored data (customers, bills, jobs, products, settings, etc.) from this browser. This action is irreversible. Proceed?', () => {
+      localStorage.clear();
+      // keep drive email saved? User wanted editable Gmail to persist — keep it
+      // We'll preserve the GDRIVE_EMAIL_KEY if it existed before confirm.
+      // If you want to clear Gmail too, the user can manually clear it.
+      const savedGmail = null; // we purposely keep Gmail; so do nothing
+      renderStats();
+      renderHistory();
+      showToast('All local data cleared');
+    }, () => {});
+  }
+
+  // -----------------------
+  // Backup history rendering
+  // -----------------------
+  function renderHistory() {
+    const hist = JSON.parse(localStorage.getItem(BACKUP_HISTORY_KEY) || '[]');
+    const container = $('historyList');
+    container.innerHTML = '';
+    if (!hist.length) {
+      container.innerHTML = '<div style="color:var(--muted)">No backups yet.</div>';
       return;
     }
-    hist.forEach(h=>{
-      const row=document.createElement('div');
-      row.className='history-row';
-      row.innerHTML=`
-        <div><strong>${h.time}</strong><div class='small'>${h.file}</div></div>
-        <div style='display:flex;gap:6px;flex-wrap:wrap'>
-          <button class='btn ghost' onclick='restoreFromFile()'>Restore</button>
-          <button class='btn ghost' onclick='deleteHist(${h.id})'>Delete</button>
-        </div>`;
-      historyList.appendChild(row);
+    hist.forEach(h => {
+      const row = document.createElement('div'); row.className = 'row';
+      const left = document.createElement('div');
+      left.innerHTML = `<div style="font-weight:700">${escapeHtml(h.filename||'backup.json')}</div><small>${new Date(h.createdAt).toLocaleString()}</small>`;
+      const right = document.createElement('div'); right.style.display='flex'; right.style.gap='8px'; right.style.alignItems='center';
+      const meta = document.createElement('div'); meta.innerHTML = `<small style="display:block;color:var(--muted)">${(h.keys||0)} keys • ${(h.size?formatBytes(h.size):'—')}</small>`;
+      const openBtn = document.createElement('button'); openBtn.className='btn small'; openBtn.textContent='Open Drive';
+      openBtn.onclick = () => { window.open('https://drive.google.com/drive/my-drive', '_blank'); };
+      const dlBtn = document.createElement('button'); dlBtn.className='btn ghost small'; dlBtn.textContent='Download';
+      // Download: cannot re-download original unless saved — provide "Export All" creation of same filename
+      dlBtn.onclick = () => { exportAllDownload(); };
+      right.appendChild(meta); right.appendChild(openBtn); right.appendChild(dlBtn);
+      row.appendChild(left); row.appendChild(right);
+      container.appendChild(row);
     });
   }
 
-  window.deleteHist=id=>{
-    const hist=JSON.parse(localStorage.getItem(backupHistoryKey)||'[]');
-    const remain=hist.filter(x=>x.id!==id);
-    localStorage.setItem(backupHistoryKey,JSON.stringify(remain));
-    renderHistory();
-  };
-
-  function startAuto(){
-    stopAuto();
-    const min=Math.max(1,Number($('interval').value)||10);
-    $('autoStatus').innerText='Auto: ON ('+min+'m)';
-    autoTimer=setInterval(createBackupFile,min*60000);
-    setStatus('Auto backup active');
-  }
-  function stopAuto(){
-    if(autoTimer)clearInterval(autoTimer);
-    $('autoStatus').innerText='Auto: OFF';
-    setStatus('Auto backup stopped');
+  // -----------------------
+  // small helpers
+  // -----------------------
+  function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]); }
+  function formatBytes(bytes) {
+    if (!bytes) return '0 B';
+    const sizes = ['B','KB','MB','GB','TB'];
+    const i = Math.floor(Math.log(bytes)/Math.log(1024));
+    return (bytes/Math.pow(1024,i)).toFixed(i?2:0) + ' ' + sizes[i];
   }
 
-  function init(){
-    getAllKeys();
+  // -----------------------
+  // Settings: Gmail persistence & UI
+  // -----------------------
+  function loadGmailToUI(){
+    const g = localStorage.getItem(GDRIVE_EMAIL_KEY) || '';
+    $('gdriveEmail').value = g;
+  }
+  function saveGmailFromUI(){
+    const val = $('gdriveEmail').value.trim();
+    if (val && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+      showToast('Invalid email format'); return;
+    }
+    localStorage.setItem(GDRIVE_EMAIL_KEY, val);
+    showToast('GDrive email saved');
+  }
+
+  // -----------------------
+  // Auto backup scheduling
+  // -----------------------
+  let autoTimer = null;
+  function startAutoBackup() {
+    stopAutoBackup();
+    const enabled = $('autoBackupToggle').checked;
+    const mins = Number($('autoBackupMins').value) || 10;
+    localStorage.setItem(AUTO_BACKUP_KEY, enabled ? '1' : '0');
+    localStorage.setItem(AUTO_INTERVAL_KEY, String(mins));
+    $('autoStatus').innerText = enabled ? `ON (${mins}m)` : 'OFF';
+    if (enabled) {
+      autoTimer = setInterval(()=> { runCreateBackup(true); }, mins * 60 * 1000);
+      showToast('Auto backup scheduled');
+    } else {
+      showToast('Auto backup disabled');
+    }
+  }
+  function stopAutoBackup() { if (autoTimer) { clearInterval(autoTimer); autoTimer = null; } }
+
+  // -----------------------
+  // render stats
+  // -----------------------
+  function renderStats(){
+    const keys = [];
+    for (let i=0;i<localStorage.length;i++) keys.push(localStorage.key(i));
+    $('totalKeys').innerText = keys.length;
+    const lastMetaRaw = localStorage.getItem('pts_last_backup_meta');
+    if (lastMetaRaw) {
+      try {
+        const meta = JSON.parse(lastMetaRaw);
+        $('lastBackup').innerText = meta.createdAt ? new Date(meta.createdAt).toLocaleString() : meta.filename || '—';
+      } catch(e){ $('lastBackup').innerText = lastMetaRaw; }
+    } else { $('lastBackup').innerText = '—'; }
+  }
+
+  // -----------------------
+  // wire events
+  // -----------------------
+  $('createBackup').addEventListener('click', ()=> runCreateBackup(true));
+  $('exportAll').addEventListener('click', ()=> exportAllDownload());
+  $('saveGmail').addEventListener('click', saveGmailFromUI);
+
+  // restore from file input
+  $('restoreFromFile').addEventListener('click', ()=> {
+    // open restore file dialog, then ask merge vs replace
+    const f = $('fileInputRestore');
+    f.onchange = e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      showModal('Restore Mode', 'Choose restore mode:\n\nOK = Merge (recommended) — incoming keys replace existing keys with same name.\nCancel = Replace (clear all then restore).', ()=> {
+        // OK = Merge
+        handleFileMerge(file, {merge:true});
+      }, ()=> {
+        // Cancel = Replace
+        handleFileMerge(file, {merge:false});
+      });
+      // reset
+      f.value = '';
+    };
+    f.click();
+  });
+
+  // import JSON (same as restore but always merge)
+  $('importJson').addEventListener('click', ()=> {
+    const f = $('fileInputImport');
+    f.onchange = e => {
+      const file = e.target.files[0];
+      if(!file) return;
+      handleFileMerge(file, {merge:true});
+      f.value = '';
+    };
+    f.click();
+  });
+
+  // clear all
+  $('clearAll').addEventListener('click', clearAllData);
+
+  // run now
+  $('runNow').addEventListener('click', ()=> runCreateBackup(true));
+
+  // auto toggle
+  $('autoBackupToggle').addEventListener('change', startAutoBackup);
+  $('autoBackupMins').addEventListener('change', startAutoBackup);
+
+  // keyboard shortcut: Ctrl+B -> backup
+  window.addEventListener('keydown', (e)=> { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase()==='b') { e.preventDefault(); runCreateBackup(true); } });
+
+  // storage sync from other tabs
+  window.addEventListener('storage', (e)=> {
+    // re-render stats & history when other tabs make changes
+    renderStats(); renderHistory();
+  });
+
+  // -----------------------
+  // initial load
+  // -----------------------
+  function init() {
+    loadGmailToUI();
+    renderStats();
     renderHistory();
-    setStatus('Ready');
+
+    // restore auto settings
+    const enabled = localStorage.getItem(AUTO_BACKUP_KEY) === '1';
+    const mins = Number(localStorage.getItem(AUTO_INTERVAL_KEY) || $('autoBackupMins').value);
+    $('autoBackupToggle').checked = enabled;
+    $('autoBackupMins').value = mins;
+    if (enabled) startAutoBackup();
   }
 
   init();
-  $('backupBtn').onclick=createBackupFile;
-  $('restoreBtn').onclick=restoreFromFile;
-  $('exportBtn').onclick=exportAll;
-  $('importBtn').onclick=importJSON;
-  $('clearBtn').onclick=clearAll;
-  $('runNow').onclick=createBackupFile;
-  $('autoToggle').onchange=e=>{e.target.checked?startAuto():stopAuto();};
+
 })();
 </script>
-
 </body>
 </html>
