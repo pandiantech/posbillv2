@@ -640,6 +640,7 @@
     });
 /* ============================================================================
    PANDIAN TECH — CATALOGUE PAGE ULTRA PRO BARCODE SCANNER (FINAL BUILD)
+   With LOUD working beep
 ============================================================================ */
 
 const CAT_BARCODE = {
@@ -654,6 +655,7 @@ const CAT_BARCODE = {
     autoFocusTimer: null,
     fallback: null,
 
+    /* -------------------- OPEN SCANNER -------------------- */
     async open(callback) {
         this.onScan = callback;
 
@@ -677,6 +679,7 @@ const CAT_BARCODE = {
                     <video id="catScanVideo" autoplay playsinline
                         style="width:100%;height:100%;object-fit:cover"></video>
 
+                    <!-- Green scanning frame -->
                     <div style="position:absolute;left:14%;top:18%;width:72%;height:60%;
                         pointer-events:none;">
                         <div style="position:absolute;left:0;top:0;width:26px;height:26px;
@@ -689,6 +692,7 @@ const CAT_BARCODE = {
                             border-bottom:3px solid #22c55e;border-right:3px solid #22c55e"></div>
                     </div>
 
+                    <!-- Laser -->
                     <div id="catLaser" style="
                         position:absolute;left:18%;right:18%;height:3px;
                         background:red;opacity:.9;
@@ -697,6 +701,7 @@ const CAT_BARCODE = {
                     <style>@keyframes catLaserMove {0%{top:32%}100%{top:68%}}</style>
                 </div>
 
+                <!-- Controls -->
                 <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
                     <select id="catQuality" style="flex:1;padding:8px;border-radius:8px;">
                         <option value="auto">Auto</option>
@@ -721,6 +726,7 @@ const CAT_BARCODE = {
         await this.start();
     },
 
+    /* -------------------- CAMERA INIT -------------------- */
     async start() {
         this.cams = await navigator.mediaDevices.enumerateDevices();
         this.cams = this.cams.filter(d => d.kind === "videoinput");
@@ -732,9 +738,11 @@ const CAT_BARCODE = {
 
         this.cams = this.sortCams(this.cams);
         this.index = 0;
+
         await this.startCam();
     },
 
+    /* -------------------- START CAMERA -------------------- */
     async startCam() {
         if (this.stream) this.stream.getTracks().forEach(t => t.stop());
 
@@ -746,7 +754,6 @@ const CAT_BARCODE = {
         if (quality === "1080") constraints.width = { ideal: 1920 };
 
         this.stream = await navigator.mediaDevices.getUserMedia({ video: constraints });
-
         const video = document.getElementById("catScanVideo");
         video.srcObject = this.stream;
 
@@ -757,11 +764,9 @@ const CAT_BARCODE = {
         this.scanLoop();
     },
 
+    /* -------------------- DETECTOR LOOP -------------------- */
     async scanLoop() {
-        if (!("BarcodeDetector" in window)) {
-            console.warn("Fallback mode activated");
-            return this.startFallback();
-        }
+        if (!("BarcodeDetector" in window)) return this.startFallback();
 
         this.detector = new BarcodeDetector({
             formats: ["code_128","ean_13","ean_8","qr_code","upc_a","upc_e"]
@@ -783,6 +788,7 @@ const CAT_BARCODE = {
         loop();
     },
 
+    /* -------------------- FALLBACK MODE -------------------- */
     async startFallback() {
         const area = document.createElement("div");
         area.id = "catFallback";
@@ -790,13 +796,15 @@ const CAT_BARCODE = {
         document.getElementById("catScanArea").appendChild(area);
 
         this.fallback = new Html5Qrcode("catFallback");
-        this.fallback.start(
+
+        await this.fallback.start(
             { deviceId: { exact: this.cams[this.index].deviceId } },
             { fps: 10, qrbox: 250 },
             txt => this.handleScan(txt)
         );
     },
 
+    /* -------------------- SUCCESS SCAN -------------------- */
     handleScan(code) {
         const now = Date.now();
         if (now - this.lastScan < this.delay) return;
@@ -810,25 +818,52 @@ const CAT_BARCODE = {
         this.close();
     },
 
+    /* ---------- LOUD WORKING BEEP (Web Audio API – never fails) --------- */
+    beep() {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc.type = "square";       // very loud
+            osc.frequency.value = 750; // scanner tone
+            gain.gain.value = 0.6;
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            osc.start();
+
+            setTimeout(() => {
+                osc.stop();
+                ctx.close();
+            }, 120);
+        } catch (err) {}
+    },
+
+    /* -------------------- CAMERA SWITCH -------------------- */
     async switchCam() {
         this.index = (this.index + 1) % this.cams.length;
         await this.startCam();
     },
 
+    /* -------------------- TORCH -------------------- */
     async toggleTorch() {
         if (!this.track) return alert("Torch not supported");
         const caps = this.track.getCapabilities();
-        if (!caps.torch) return alert("Torch unavailable");
+        if (!caps.torch) return alert("Torch not available");
 
         const on = !this._torch;
         await this.track.applyConstraints({ advanced: [{ torch: on }] });
         this._torch = on;
     },
 
+    /* -------------------- QUALITY CHANGE -------------------- */
     async restart() {
         await this.startCam();
     },
 
+    /* -------------------- CLOSE SCANNER -------------------- */
     async close() {
         clearInterval(this.autoFocusTimer);
         try { if (this.stream) this.stream.getTracks().forEach(t => t.stop()); } catch {}
@@ -838,6 +873,7 @@ const CAT_BARCODE = {
         if (m) m.remove();
     },
 
+    /* -------------------- CAMERA SORT -------------------- */
     sortCams(list) {
         const back = list.filter(c => /back|rear|environment/i.test(c.label));
         const front = list.filter(c => /front|user/i.test(c.label));
@@ -845,6 +881,7 @@ const CAT_BARCODE = {
         return [...back, ...front, ...others];
     },
 
+    /* -------------------- AUTO FOCUS -------------------- */
     autoFocus() {
         try {
             const caps = this.track.getCapabilities();
@@ -852,23 +889,11 @@ const CAT_BARCODE = {
                 this.track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
             }
         } catch {}
-    },
-
-beep() {
-    try {
-        const audio = new Audio(
-          "data:audio/wav;base64," +
-          "UklGRiQAAABXQVZFZm10IBAAAAABAAEAIlYAACJWAAACABAAZGF0YQAA" +
-          "AICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAA" +
-          "AAAAAAAAP///wD///8A////AP///wD///8A////AP///wD///8A////" +
-          "AP///wD///8A////AP///wD///8A////AA=="  
-        );
-        audio.volume = 1.0;
-        audio.play();
-    } catch(e) { console.log("Beep error:", e); }
+    }
 };
 
-/* ----------------------- CONNECT TO YOUR MODAL BUTTON ----------------------- */
+
+/* ----------------------- CONNECT BUTTON ----------------------- */
 document.getElementById("scanBarcodeBtn").onclick = () => {
     CAT_BARCODE.open(code => {
         document.getElementById("pbarcode").value = code;
@@ -882,6 +907,10 @@ document.getElementById("scanBarcodeBtn").onclick = () => {
         showToast("Scanned: " + code);
     });
 };
+
+
+
+
 
     
     // utilities
@@ -900,4 +929,3 @@ document.getElementById("scanBarcodeBtn").onclick = () => {
   </script>
 </body>
 </html>
-
