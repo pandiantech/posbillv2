@@ -96,10 +96,6 @@
   </style>
 </head>
 <body>
-  <audio id="beepAudio">
-  <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=" type="audio/wav">
-</audio>
-
 
   <div class="wrap">
     <div class="toolbar">
@@ -823,9 +819,7 @@ let CATSCAN = {
         if (now - this.last < this.debounce) return;
         this.last = now;
 
-        this.beep();p
-
-        
+        this.beep();
         navigator.vibrate?.(150);
 
         if (this.onScan) this.onScan(code);
@@ -875,17 +869,15 @@ let CATSCAN = {
         return [...back, ...front, ...other];
     },
 
-/* ------------------ LOUD BEEP (100% WORKING ON ANDROID) ------------------ */
-beep() {
-    try {
-        const audio = document.getElementById("beepSound");
-        audio.volume = 1.0;
-        audio.currentTime = 0;   // rewind to start
-        audio.play().catch(err => console.log("Beep blocked:", err));
-    } catch (e) {
-        console.log("Beep error:", e);
-    }
-},
+    /* ------------------ LOUD BEEP ------------------ */
+    beep() {
+        try {
+            const audio = new Audio();
+            audio.src = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=";
+            audio.volume = 1.0;
+            audio.play();
+        } catch {}
+    },
 
     /* ------------------ AUTOFOCUS ------------------ */
     autoFocus() {
